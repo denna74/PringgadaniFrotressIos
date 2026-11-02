@@ -136,6 +136,21 @@ jobs:
           IOS_PROVISIONING_PROFILE_NAME: ${{ vars.IOS_PROVISIONING_PROFILE_NAME || 'PringgadaniFortress AppStore' }}
           IOS_BUILD_NUMBER: ${{ github.run_number }}
 
+      - name: Report IPA size breakdown
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          ipa = Path("build/ios/PringgadaniFortress.ipa")
+          print(f"IPA size: {ipa.stat().st_size / 1024 / 1024:.1f} MiB")
+          with ZipFile(ipa) as archive:
+              files = [entry for entry in archive.infolist() if not entry.is_dir()]
+              print("Largest IPA entries (uncompressed):")
+              for entry in sorted(files, key=lambda item: item.file_size, reverse=True)[:30]:
+                  print(f"{entry.file_size / 1024 / 1024:8.1f} MiB  {entry.filename}")
+          PY
+
       - name: Upload IPA Artifact
         if: always()
         uses: actions/upload-artifact@v4
