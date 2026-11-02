@@ -764,6 +764,7 @@ func _on_pause_continue() -> void:
 func _apply_run_loss() -> void:
 	_playing = false
 	set_paused(false)
+	SaveManager.set_pending_run_loss(false)
 	SaveManager.lose_life()
 	EconomyManager.end_run()
 
@@ -782,7 +783,13 @@ func _on_close_requested() -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+	if what == NOTIFICATION_APPLICATION_PAUSED and _playing:
+		SaveManager.set_pending_run_loss(true)
+		SaveManager.save_game()
+	elif what == NOTIFICATION_APPLICATION_RESUMED and SaveManager.pending_run_loss:
+		SaveManager.set_pending_run_loss(false)
+		SaveManager.save_game()
+	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
 		_on_close_requested()
 		get_tree().quit()
 	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:

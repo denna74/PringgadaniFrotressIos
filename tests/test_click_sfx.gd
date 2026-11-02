@@ -26,8 +26,7 @@ const METHOD_ROUTES := [
 const SOURCE_ROUTES := [
 	["res://scenes/menu/MainMenu.gd", "_on_story_pressed", "ClickPlayer.play_select_1()", 1],
 	["res://scenes/menu/MainMenu.gd", "_on_play_pressed", "ClickPlayer.play_select_1()", 1],
-	["res://scenes/menu/MainMenu.gd", "_on_exit_pressed", "ClickPlayer.play_select_1()", 1],
-	["res://scenes/menu/MainMenu.gd", "_setup_settings_button", ".pressed.connect(ClickPlayer.play_select_1)", 1],
+	["res://scenes/menu/MainMenu.gd", "_on_settings_pressed", "ClickPlayer.play_select_1()", 1],
 	["res://scenes/menu/SettingsPopup.gd", "_build_ui", "ClickPlayer.play_select_1", 3],
 	["res://scenes/menu/SettingsPopup.gd", "_on_sfx_changed", "ClickPlayer.play_select_1()", 1],
 	["res://scenes/menu/StoryPage.gd", "_make_button", "ClickPlayer.play_select_3", 1],

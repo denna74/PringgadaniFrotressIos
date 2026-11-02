@@ -65,6 +65,22 @@ func _run() -> void:
 	var rc = load("res://scenes/run/RunController.gd").new()
 	rc.hud_ui = hud
 
+	# --- app background/force-quit lifecycle ---
+	sm.lives = 3
+	rc._playing = true
+	rc._notification(NOTIFICATION_APPLICATION_PAUSED)
+	_check("backgrounding a live run persists a pending loss", sm.pending_run_loss)
+	rc._notification(NOTIFICATION_APPLICATION_RESUMED)
+	_check("resuming the app clears the pending loss", not sm.pending_run_loss)
+	_check("resuming the app does not cost a life", sm.lives == 3)
+	rc._notification(NOTIFICATION_APPLICATION_PAUSED)
+	sm.load_game()
+	sm.apply_pending_run_loss_if_any()
+	_check("relaunch after force-quit costs one life", sm.lives == 2)
+	_check("relaunch clears the pending loss", not sm.pending_run_loss)
+	sm.apply_pending_run_loss_if_any()
+	_check("reapplying a handled loss costs no second life", sm.lives == 2)
+
 	# --- pause popup round-trip ---
 	rc._playing = true
 	rc.set_paused(true)

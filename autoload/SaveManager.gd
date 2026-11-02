@@ -48,6 +48,7 @@ var last_login: int = 0
 var lives: int = 3
 var max_lives: int = 3
 var last_life_loss_time: int = 0
+var pending_run_loss: bool = false
 var skill_levels: Dictionary = DEFAULT_SKILL_LEVELS.duplicate()
 var building_upgrade_levels: Dictionary = DEFAULT_BUILDING_UPGRADE_LEVELS.duplicate()
 var _refill_timer: Timer = null
@@ -69,6 +70,7 @@ func _ready() -> void:
 			DirAccess.remove_absolute(test_path)
 	_setup_refill_timer()
 	load_game()
+	apply_pending_run_loss_if_any()
 	if heroes.is_empty():
 		heroes["gatotkaca"] = {"level": 1, "stars": 1, "xp": 0}
 	_sync_refill_timer()
@@ -115,6 +117,7 @@ func save_game() -> void:
 		"last_login": Time.get_unix_time_from_system(),
 		"lives": lives,
 		"last_life_loss_time": last_life_loss_time,
+		"pending_run_loss": pending_run_loss,
 		"equipment": equipment,
 		"inventory": inventory,
 		"processed_purchases": processed_purchases,
@@ -147,6 +150,7 @@ func load_game() -> void:
 		last_login = data.get("last_login", Time.get_unix_time_from_system())
 		lives = data.get("lives", 3)
 		last_life_loss_time = data.get("last_life_loss_time", 0)
+		pending_run_loss = data.get("pending_run_loss", false)
 		var loaded_equip: Dictionary = data.get("equipment", {})
 		equipment = DEFAULT_EQUIPMENT.duplicate()
 		for slot: String in EQUIPMENT_SLOTS:
@@ -338,6 +342,20 @@ func lose_life() -> void:
 		lives_changed.emit(lives)
 		save_game()
 	_sync_refill_timer()
+
+
+func set_pending_run_loss(value: bool) -> void:
+	pending_run_loss = value
+
+
+func apply_pending_run_loss_if_any() -> void:
+	if not pending_run_loss:
+		return
+	pending_run_loss = false
+	if lives > 0:
+		lose_life()
+	else:
+		save_game()
 
 
 func refill_life() -> void:

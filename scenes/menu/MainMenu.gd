@@ -6,7 +6,6 @@ const STORY_SCENE_PATH := "res://scenes/menu/StoryPage.tscn"
 
 var _story_btn: Button
 var _play_btn: Button
-var _exit_btn: Button
 var _settings_btn: Button
 var _settings_popup: Control
 var _bg_rect: TextureRect
@@ -16,7 +15,6 @@ func _ready() -> void:
 	_setup_background()
 	_setup_logo()
 	_setup_buttons()
-	_setup_exit_button()
 	MusicManager.play_fade(MusicManager.Track.MAIN_MENU, 1.0)
 
 
@@ -109,46 +107,6 @@ func _start_breathing(btn: Button) -> void:
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
-func _setup_exit_button() -> void:
-	_exit_btn = Button.new()
-	_exit_btn.text = TranslationManager.t("exit")
-	_exit_btn.position = Vector2(860, 30)
-	_exit_btn.custom_minimum_size = Vector2(280, 76)
-	_exit_btn.pressed.connect(_on_exit_pressed)
-	_exit_btn.pressed.connect(ClickPlayer.play_select_1)
-
-	var style := StyleBoxTexture.new()
-	style.texture = load("res://assets/buttons/small_button.png")
-	style.content_margin_left = 40
-	_exit_btn.add_theme_stylebox_override("normal", style)
-	_exit_btn.add_theme_stylebox_override("focus", style)
-
-	var pressed_style := style.duplicate()
-	pressed_style.modulate_color = Color(0.8, 0.8, 0.8)
-	_exit_btn.add_theme_stylebox_override("pressed", pressed_style)
-
-	_exit_btn.add_theme_font_size_override("font_size", 36)
-	_exit_btn.add_theme_color_override("font_color", Color(0.8, 0.2, 0.35))
-	ButtonBuilder.make_hover_inert(_exit_btn)
-	_exit_btn.add_child(_build_gear_icon())
-	add_child(_exit_btn)
-
-
-## The gear rides inside the button as a child so the settings label stays centred, the
-## same way the hub's section buttons carry an icon.
-func _build_gear_icon() -> TextureRect:
-	var icon := TextureRect.new()
-	# expand_mode must be relaxed before the texture lands, otherwise the control
-	# clamps its size up to the texture's 85px and later overrides can't shrink it.
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture = load("res://assets/buttons/wood_door.png")
-	icon.size = Vector2(56, 56)
-	icon.position = Vector2(37, 7)
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return icon
-
-
 func _create_button(text: String, color: Color, texture: Resource) -> Button:
 	var btn := Button.new()
 	btn.text = text
@@ -182,11 +140,6 @@ func _on_play_pressed() -> void:
 	SceneManager.go_to_scene("res://scenes/hub/LevelTrack.tscn")
 
 
-func _on_exit_pressed() -> void:
-	ClickPlayer.play_select_1()
-	get_tree().quit()
-
-
 func _on_settings_pressed() -> void:
 	ClickPlayer.play_select_1()
 	if is_instance_valid(_settings_popup):
@@ -199,4 +152,3 @@ func _on_language_changed(_lang: String) -> void:
 	_settings_btn.text = TranslationManager.t("settings")
 	_story_btn.text = TranslationManager.t("story")
 	_play_btn.text = TranslationManager.t("play")
-	_exit_btn.text = TranslationManager.t("exit")

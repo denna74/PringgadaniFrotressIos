@@ -44,10 +44,12 @@ func _run() -> void:
 	)
 	var story_btn: Button = menu.get("_story_btn")
 	var play_btn: Button = menu.get("_play_btn")
+	var menu_buttons := menu.find_children("*", "Button", true, false)
 	_check(
 		"play button animation pivot is centered",
 		play_btn != null and play_btn.pivot_offset == play_btn.size / 2
 	)
+	_check("main menu has no exit button", menu_buttons.size() == 3)
 	_check("story button exists", story_btn != null)
 	_check("story button is wired", story_btn != null and story_btn.pressed.get_connections().size() > 0)
 	_check("play button exists", play_btn != null)
