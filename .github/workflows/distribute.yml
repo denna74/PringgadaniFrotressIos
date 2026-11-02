@@ -121,6 +121,8 @@ jobs:
           test -f export_presets.cfg
           mkdir -p build/ios
           godot --headless --import
+          python3 tools/configure_ios_model_textures.py
+          godot --headless --import
           godot --headless --export-release "iOS" build/ios/PringgadaniFortress.xcodeproj
 
       - name: Configure Native iOS Launch Screen
