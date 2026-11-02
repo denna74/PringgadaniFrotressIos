@@ -85,10 +85,21 @@ jobs:
           path: |
             ios/plugins/unity-ads/bin/
             ios/plugins/unity-ads/vendor/
-          key: ${{ runner.os }}-unity-ads-4.18.1-${{ hashFiles('ios/plugins/unity-ads/build.sh', 'ios/plugins/unity-ads/src/**', 'ios/plugins/unity-ads/unity-ads.gdip') }}
+          key: ${{ runner.os }}-unity-ads-4.18.1-v2-${{ hashFiles('ios/plugins/unity-ads/build.sh', 'ios/plugins/unity-ads/src/**', 'ios/plugins/unity-ads/unity-ads.gdip') }}
+
+      - name: Validate cached Unity Ads framework
+        id: validate-unity-ads
+        run: |
+          FRAMEWORK=ios/plugins/unity-ads/vendor/UnityAds.xcframework
+          if [ -f "$FRAMEWORK/ios-arm64/UnityAds.framework/Headers/UnityAds-Swift.h" ] \
+            && [ -f "$FRAMEWORK/ios-arm64_x86_64-simulator/UnityAds.framework/Headers/UnityAds-Swift.h" ]; then
+            echo "cache_valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cache_valid=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Compile Unity Ads iOS Plugin
-        if: steps.cache-unity-ads.outputs.cache-hit != 'true'
+        if: steps.cache-unity-ads.outputs.cache-hit != 'true' || steps.validate-unity-ads.outputs.cache_valid != 'true'
         run: |
           brew install scons
           ./ios/plugins/unity-ads/build.sh

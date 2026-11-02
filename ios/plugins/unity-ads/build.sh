@@ -28,15 +28,28 @@ export PATH="$PATH:/opt/homebrew/bin"
 UNITY_ADS_VERSION="${UNITY_ADS_VERSION:-4.18.1}"
 VENDOR_DIR="$SCRIPT_DIR/vendor"
 mkdir -p "$VENDOR_DIR"
+XCFRAMEWORK_DIR="$VENDOR_DIR/UnityAds.xcframework"
+DEVICE_SWIFT_HEADER="$XCFRAMEWORK_DIR/ios-arm64/UnityAds.framework/Headers/UnityAds-Swift.h"
+SIMULATOR_SWIFT_HEADER="$XCFRAMEWORK_DIR/ios-arm64_x86_64-simulator/UnityAds.framework/Headers/UnityAds-Swift.h"
 
-if [ ! -d "$VENDOR_DIR/UnityAds.xcframework" ]; then
+if [ -d "$XCFRAMEWORK_DIR" ] && { [ ! -f "$DEVICE_SWIFT_HEADER" ] || [ ! -f "$SIMULATOR_SWIFT_HEADER" ]; }; then
+    echo "==> Removing incomplete Unity Ads XCFramework"
+    rm -rf "$XCFRAMEWORK_DIR"
+fi
+
+if [ ! -d "$XCFRAMEWORK_DIR" ]; then
     echo "==> Fetching Unity Ads iOS SDK $UNITY_ADS_VERSION"
     URL="${UNITY_ADS_SDK_URL:-https://github.com/Unity-Technologies/unity-ads-ios/releases/download/${UNITY_ADS_VERSION}/UnityAds.zip}"
     TMP="$(mktemp -d)"
     curl -L --fail -o "$TMP/unityads.zip" "$URL"
     unzip -q "$TMP/unityads.zip" -d "$TMP"
     if [ -d "$TMP/UnityAds.xcframework" ]; then
-        cp -R "$TMP/UnityAds.xcframework" "$VENDOR_DIR/UnityAds.xcframework"
+        if [ ! -f "$TMP/UnityAds.xcframework/ios-arm64/UnityAds.framework/Headers/UnityAds-Swift.h" ] \
+            || [ ! -f "$TMP/UnityAds.xcframework/ios-arm64_x86_64-simulator/UnityAds.framework/Headers/UnityAds-Swift.h" ]; then
+            echo "ERROR: UnityAds.xcframework is missing its device or simulator Swift header."
+            exit 1
+        fi
+        cp -R "$TMP/UnityAds.xcframework" "$XCFRAMEWORK_DIR"
     else
         echo "ERROR: UnityAds.xcframework not found in $URL"
         exit 1

@@ -32,6 +32,18 @@ static func build_navigation(terrain: Array, parent: Node3D, center_offset: floa
 	return nav_region
 
 
+static func wait_until_ready(
+	region: NavigationRegion3D,
+	navigation_map: RID,
+	initial_iteration_id: int,
+	tree: SceneTree
+) -> void:
+	if region.is_baking():
+		await region.bake_finished
+	while NavigationServer3D.map_get_iteration_id(navigation_map) <= initial_iteration_id:
+		await tree.physics_frame
+
+
 static func _add_walkable_colliders(body: StaticBody3D, terrain: Array, center_offset: float = 0.0) -> void:
 	var box_shape := BoxShape3D.new()
 	box_shape.size = Vector3(TILE_SIZE, 0.3, TILE_SIZE)

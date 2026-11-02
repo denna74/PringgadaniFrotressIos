@@ -25,6 +25,9 @@ var _production_timer: Timer = null
 var _king_controller: Node3D = null
 var _terrain: Array = []
 var _map_size: int = 0
+var _navigation_region: NavigationRegion3D
+var _navigation_map: RID
+var _navigation_iteration_before_bake: int = 0
 
 var _wave_timer: Timer = null
 var _wave_countdown: float = 999.0
@@ -239,6 +242,14 @@ func _start_level() -> void:
 	MusicManager.preload_all()
 	await get_tree().process_frame
 
+	loading.set_status("Preparing navigation...", 0.98)
+	await NavigationBuilder.wait_until_ready(
+		_navigation_region,
+		_navigation_map,
+		_navigation_iteration_before_bake,
+		get_tree()
+	)
+
 	garrison = PlayerGarrison.new()
 	EconomyManager.begin_run()
 	_start_production()
@@ -290,7 +301,11 @@ func _build_map(data: Dictionary) -> void:
 
 	var center_offset: float = _map_size * 0.5
 	TerrainBuilder.build_terrain(_terrain, self, center_offset, stage_theme)
-	NavigationBuilder.build_navigation(_terrain, self, center_offset)
+	_navigation_map = get_world_3d().get_navigation_map()
+	_navigation_iteration_before_bake = NavigationServer3D.map_get_iteration_id(
+		_navigation_map
+	)
+	_navigation_region = NavigationBuilder.build_navigation(_terrain, self, center_offset)
 
 	var env := WorldEnvironment.new()
 	env.environment = Environment.new()
