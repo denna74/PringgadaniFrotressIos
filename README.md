@@ -44,7 +44,6 @@ and upload the IPA to TestFlight. Configure these repository secrets:
 - `APP_STORE_CONNECT_API_KEY_KEY` (base64-encoded `.p8` key)
 - `BUILD_CERTIFICATE_P12` (base64 of an Apple Distribution `.p12` containing its private key)
 - `BUILD_CERTIFICATE_P12_PASSWORD` (only if the `.p12` is password-protected)
-- `IOS_TEAM_ID`
 
 Reuse a valid Apple Distribution certificate from your Apple Developer team
 (for example, the `.p12` artifact from another app in the same team); do not

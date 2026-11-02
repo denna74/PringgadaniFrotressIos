@@ -4,10 +4,6 @@ def app_identifier
   ENV.fetch("IOS_BUNDLE_IDENTIFIER", "com.pringgadanifortress")
 end
 
-def team_identifier
-  ENV.fetch("IOS_TEAM_ID") { UI.user_error!("Set the IOS_TEAM_ID environment variable.") }
-end
-
 def profile_name
   ENV.fetch("IOS_PROVISIONING_PROFILE_NAME", "PringgadaniFortress AppStore")
 end
@@ -58,7 +54,7 @@ platform :ios do
       output_directory: "build/ios",
       output_name: "PringgadaniFortress.ipa",
       export_method: "app-store",
-      xcargs: "CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' DEVELOPMENT_TEAM=#{team_identifier} PROVISIONING_PROFILE_SPECIFIER='#{profile_name}'"
+      xcargs: "CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='#{profile_name}'"
     )
 
     pilot(

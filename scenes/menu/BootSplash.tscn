@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://d1niib3knm825"]
 
-[ext_resource type="Script" uid="uid://dfc7qilxlp3p4" path="res://scenes/menu/BootSplash.gd" id="1_boot"]
-[ext_resource type="Texture2D" uid="uid://q7ij0his5v12" path="res://assets/dgs_boot_screen.png" id="2_splash"]
+[ext_resource type="Script" uid="uid://csh5nknmnqda4" path="res://scenes/menu/BootSplash.gd" id="1_boot"]
+[ext_resource type="Texture2D" uid="uid://dxx4514e5ohxc" path="res://assets/dgs_boot_screen.png" id="2_splash"]
 
 [node name="BootSplash" type="Control" unique_id=47594733]
 layout_mode = 3

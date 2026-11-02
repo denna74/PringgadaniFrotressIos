@@ -39,7 +39,7 @@ IAPConfig="*res://autoload/IAPConfig.gd"
 IAPManager="*res://autoload/IAPManager.gd"
 UnityAds="*res://autoload/UnityAds.gd"
 AdsManager="*res://autoload/AdsManager.gd"
-GodotIapPlugin="*res://addons/godot-iap/godot_iap.gd"
+GodotIapPlugin="*uid://bfjo323qxscvt"
 
 [debug]
 
