@@ -97,10 +97,23 @@ func _run() -> void:
 	hud.update_countdown(3)
 
 	_check_readouts(hud)
-	var guard_button := _find_by_name(hud, "GuardPendopoButton") as Button
-	var gather_button := _find_by_name(hud, "GatherSoldiersButton") as Button
+	var guard_button := _find_by_name(hud, "GuardPendopoButton") as TextureButton
+	var gather_button := _find_by_name(hud, "GatherSoldiersButton") as TextureButton
 	_check("soldier command buttons are present",
 		guard_button != null and gather_button != null)
+	_check("soldier command buttons start hidden without allies",
+		not hud.get_node("SoldierCommands").visible)
+	_check("soldier command icons and skill-sized hit areas",
+		guard_button != null and gather_button != null
+			and guard_button.texture_normal.resource_path == "res://assets/buttons/pendopo.png"
+			and gather_button.texture_normal.resource_path == "res://assets/buttons/group.png"
+			and guard_button.custom_minimum_size == Vector2(110, 110)
+			and gather_button.custom_minimum_size == Vector2(110, 110)
+			and guard_button.size == Vector2(110, 110)
+			and gather_button.size == Vector2(110, 110))
+	hud.set_soldier_commands_visible(true)
+	_check("soldier commands show while allies are alive",
+		hud.get_node("SoldierCommands").visible)
 	var commands := {"guard": 0, "gather": 0}
 	hud.guard_pendopo_pressed.connect(func() -> void: commands["guard"] += 1)
 	hud.gather_soldiers_pressed.connect(func() -> void: commands["gather"] += 1)
@@ -108,16 +121,19 @@ func _run() -> void:
 	gather_button.pressed.emit()
 	_check("command buttons emit their army commands",
 		commands["guard"] == 1 and commands["gather"] == 1)
+	hud.set_soldier_commands_visible(false)
+	_check("soldier commands hide after all allies die",
+		not hud.get_node("SoldierCommands").visible)
 	tm.set_language("id")
 	await process_frame
 	_check("Indonesian top bar life caption", _find_label(hud, "NYAWA ") != null)
 	_check("Indonesian top bar stage caption", _find_label(hud, "Babak 0") != null)
 	_check("Indonesian top bar wave caption", _find_label(hud, "Gelombang: 1 / 5") != null)
 	_check("Indonesian HUD gold caption", _find_label(hud, "Emas") != null)
-	_check("soldier command buttons are translated",
+	_check("soldier command icons persist after language change",
 		guard_button != null and gather_button != null
-			and guard_button.text == tm.t("soldier_command_pendopo")
-			and gather_button.text == tm.t("soldier_command_gather"))
+			and guard_button.texture_normal.resource_path == "res://assets/buttons/pendopo.png"
+			and gather_button.texture_normal.resource_path == "res://assets/buttons/group.png")
 	tm.set_language(original_language)
 	await process_frame
 	await _check_life_strip(hud, sm)

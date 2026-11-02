@@ -77,7 +77,9 @@ static func king_mana_max(level: int = 1, stars: int = 1) -> float:
 const MAX_KING_LEVEL: int = 99
 const DIFFICULTY_CAP_STAGE: int = 250
 
-const XP_QUADRATIC: float = 6.5
+const XP_CURVE_START_XP: int = 200
+const XP_CURVE_END_XP: int = 69000
+const XP_CURVE_END_LEVEL: int = 98
 
 const UNDERLEVEL_SLOPE: float = 0.03
 const UNDERLEVEL_MAX_MULT: float = 4.0
@@ -388,12 +390,19 @@ static func troop_stats(troop_type: String, barracks_level: int = 1) -> Dictiona
 
 # ─── King Progression ───
 static func xp_to_next(level: int) -> int:
-	if level >= MAX_KING_LEVEL:
+	if level < 1 or level >= MAX_KING_LEVEL:
 		return 0
-	return roundi(XP_QUADRATIC * float(level * level))
+	var level_progress: float = (
+		float(level * level - 1)
+		/ float(XP_CURVE_END_LEVEL * XP_CURVE_END_LEVEL - 1)
+	)
+	return roundi(
+		float(XP_CURVE_START_XP)
+		+ float(XP_CURVE_END_XP - XP_CURVE_START_XP) * level_progress
+	)
 
 static func win_xp(stage: int) -> int:
-	return 50 * stage
+	return 50 * mini(stage, DIFFICULTY_CAP_STAGE)
 
 ## Rates a cleared stage out of three.
 ##

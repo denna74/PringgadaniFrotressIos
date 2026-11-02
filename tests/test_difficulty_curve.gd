@@ -48,26 +48,28 @@ func _run() -> void:
 func _test_xp_curve() -> void:
 	print("-- xp curve --")
 	_check("MAX_KING_LEVEL = 99", ProgressionData.MAX_KING_LEVEL == 99)
-	_check_near("xp_to_next(L1) = 7", ProgressionData.xp_to_next(1), 7.0, 0.5)
-	_check_near("xp_to_next(L10) = 650", ProgressionData.xp_to_next(10), 650.0, 0.5)
-	_check_near("xp_to_next(L20) = 2600", ProgressionData.xp_to_next(20), 2600.0, 0.5)
-	_check_near("xp_to_next(L50) = 16250", ProgressionData.xp_to_next(50), 16250.0, 0.5)
+	_check("xp_to_next(L1) = 200", ProgressionData.xp_to_next(1) == 200)
+	_check("xp_to_next(L10) = 909", ProgressionData.xp_to_next(10) == 909)
+	_check("xp_to_next(L20) = 3059", ProgressionData.xp_to_next(20) == 3059)
+	_check("xp_to_next(L50) = 18104", ProgressionData.xp_to_next(50) == 18104)
+	_check("xp_to_next(L98) = 69000", ProgressionData.xp_to_next(98) == 69000)
 	_check("xp_to_next(L99) = 0 (capped)", ProgressionData.xp_to_next(99) == 0)
 	_check("xp_to_next(L100) = 0 (past cap)", ProgressionData.xp_to_next(100) == 0)
 	_check("win_xp(S1) = 50", ProgressionData.win_xp(1) == 50)
 	_check("win_xp(S10) = 500", ProgressionData.win_xp(10) == 500)
-
+	_check("win_xp(S250) = 12500", ProgressionData.win_xp(250) == 12500)
+	_check("win_xp(S400) stays capped at 12500", ProgressionData.win_xp(400) == 12500)
 
 # ─── expected_level: the level a player naturally has at a stage ───
 
 func _test_expected_level() -> void:
 	print("-- expected level --")
-	_check("expected_level(S209) = 80", ProgressionData.expected_level(209) == 80)
-	_check("expected_level(S210) = 80", ProgressionData.expected_level(210) == 80)
-	_check("expected_level(S211) = 80", ProgressionData.expected_level(211) == 80)
-	_check("expected_level(S250) = 90", ProgressionData.expected_level(250) == 90)
-	_check("expected_level(S1) = 3", ProgressionData.expected_level(1) == 3)
-	_check_near("expected_level(S30) = 22", ProgressionData.expected_level(30), 22.0, 0.5)
+	_check("expected_level(S209) = 77", ProgressionData.expected_level(209) == 77)
+	_check("expected_level(S210) = 77", ProgressionData.expected_level(210) == 77)
+	_check("expected_level(S211) = 77", ProgressionData.expected_level(211) == 77)
+	_check("expected_level(S250) = 87", ProgressionData.expected_level(250) == 87)
+	_check("expected_level(S1) = 1", ProgressionData.expected_level(1) == 1)
+	_check_near("expected_level(S30) = 20", ProgressionData.expected_level(30), 20.0, 0.5)
 	_check("expected_level never exceeds 99", ProgressionData.expected_level(4000) <= 99)
 	_check(
 		"expected_level non-decreasing 1..400",

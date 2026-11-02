@@ -89,8 +89,9 @@ var _countdown_tween: Tween
 var _minimap: Control
 var _potions_panel: Control
 var _pause_button: Button = null
-var _guard_pendopo_button: Button = null
-var _gather_soldiers_button: Button = null
+var _soldier_commands: HBoxContainer
+var _guard_pendopo_button: TextureButton
+var _gather_soldiers_button: TextureButton
 var _pause_allowed: bool = false
 var _pause_blocked: bool = false
 var stage_number: int = 0
@@ -388,28 +389,37 @@ func _build_dpad() -> void:
 func _build_soldier_command_buttons() -> void:
 	var commands := HBoxContainer.new()
 	commands.name = "SoldierCommands"
-	commands.position = Vector2(740, 105)
-	commands.size = Vector2(292, 42)
-	commands.add_theme_constant_override("separation", 12)
+	commands.position = Vector2(320, 590)
+	commands.size = Vector2(SKILL_BUTTON_SIZE * 2.0 + 12.0, SKILL_BUTTON_SIZE)
+	commands.add_theme_constant_override("separation", 40)
+	commands.visible = false
+	_soldier_commands = commands
 	add_child(commands)
 
-	_guard_pendopo_button = ButtonBuilder.create_small_button(
-		TranslationManager.t("soldier_command_pendopo"), 140, 42
-	)
+	_guard_pendopo_button = TextureButton.new()
 	_guard_pendopo_button.name = "GuardPendopoButton"
-	_guard_pendopo_button.add_theme_font_size_override("font_size", 14)
+	_guard_pendopo_button.ignore_texture_size = true
+	_guard_pendopo_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	_guard_pendopo_button.custom_minimum_size = Vector2(SKILL_BUTTON_SIZE, SKILL_BUTTON_SIZE)
+	_guard_pendopo_button.texture_normal = load("res://assets/buttons/pendopo.png")
 	_guard_pendopo_button.pressed.connect(func() -> void: guard_pendopo_pressed.emit())
 	_guard_pendopo_button.pressed.connect(ClickPlayer.play_select_3)
 	commands.add_child(_guard_pendopo_button)
 
-	_gather_soldiers_button = ButtonBuilder.create_small_button(
-		TranslationManager.t("soldier_command_gather"), 140, 42
-	)
+	_gather_soldiers_button = TextureButton.new()
 	_gather_soldiers_button.name = "GatherSoldiersButton"
-	_gather_soldiers_button.add_theme_font_size_override("font_size", 14)
+	_gather_soldiers_button.ignore_texture_size = true
+	_gather_soldiers_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	_gather_soldiers_button.custom_minimum_size = Vector2(SKILL_BUTTON_SIZE, SKILL_BUTTON_SIZE)
+	_gather_soldiers_button.texture_normal = load("res://assets/buttons/group.png")
 	_gather_soldiers_button.pressed.connect(func() -> void: gather_soldiers_pressed.emit())
 	_gather_soldiers_button.pressed.connect(ClickPlayer.play_select_3)
 	commands.add_child(_gather_soldiers_button)
+
+
+func set_soldier_commands_visible(has_living_soldiers: bool) -> void:
+	if _soldier_commands != null:
+		_soldier_commands.visible = has_living_soldiers
 
 
 func _build_attack_button() -> void:
@@ -744,10 +754,6 @@ func _refresh_top_bar_labels(_lang: String) -> void:
 	update_stage_label()
 	update_wave(_current_wave, _total_waves)
 	update_countdown(_countdown_remaining)
-	if _guard_pendopo_button != null:
-		_guard_pendopo_button.text = TranslationManager.t("soldier_command_pendopo")
-	if _gather_soldiers_button != null:
-		_gather_soldiers_button.text = TranslationManager.t("soldier_command_gather")
 
 
 # Absolute values, not a percentage. A percentage-only bar read "100" at every level,

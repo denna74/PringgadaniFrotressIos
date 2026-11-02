@@ -359,6 +359,7 @@ func _on_troop_trained(troop_type: String, barak: Node3D) -> void:
 	soldier.death_callback = Callable(self, "_on_soldier_died").bind(troop_type)
 	soldier.died.connect(soldier.death_callback)
 	_soldier_units.append(soldier)
+	_refresh_soldier_command_visibility()
 
 
 func _on_soldier_died(soldier: Node3D, troop_type: String) -> void:
@@ -366,6 +367,12 @@ func _on_soldier_died(soldier: Node3D, troop_type: String) -> void:
 		_soldier_units.erase(soldier)
 		if garrison != null:
 			garrison.remove_troops(troop_type, 1)
+		_refresh_soldier_command_visibility()
+
+
+func _refresh_soldier_command_visibility() -> void:
+	if hud_ui != null and is_instance_valid(hud_ui):
+		hud_ui.set_soldier_commands_visible(not _soldier_units.is_empty())
 
 
 func _guard_soldiers_at_nearest_pendopo() -> void:
