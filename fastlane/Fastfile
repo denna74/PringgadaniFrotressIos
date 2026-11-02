@@ -22,40 +22,18 @@ def app_store_api_key
 end
 
 platform :ios do
-  desc "Create certificates and provisioning profiles"
-  lane :init_certificates do
+  desc "List in-app purchase products and their App Store Connect state"
+  lane :iap_products do
     api_key = app_store_api_key
 
-    cert(
-      api_key: api_key,
-      output_path: "build/certs"
-    )
-
-    sigh(
-      api_key: api_key,
-      app_identifier: app_identifier,
-      provisioning_name: profile_name,
-      output_path: "build/profiles",
-      force: true
-    )
-  end
-
-  desc "Fetch certificates and provisioning profiles"
-  lane :fetch_certificates do
-    api_key = app_store_api_key
-
-    cert(
-      api_key: api_key,
-      output_path: "build/certs"
-    )
-
-    sigh(
-      api_key: api_key,
-      app_identifier: app_identifier,
-      provisioning_name: profile_name,
-      output_path: "build/profiles",
-      readonly: true
-    )
+    app = Spaceship::ConnectAPI::App.find(app_identifier)
+    response = Spaceship::ConnectAPI.client.get("apps/#{app.id}/inAppPurchasesV2")
+    products = response.fetch("data")
+    UI.message("IAP count: #{products.size}")
+    products.each do |product|
+      attributes = product.fetch("attributes")
+      UI.message("#{attributes['productId']}  state=#{attributes['state']}  name=#{attributes['name']}")
+    end
   end
 
   desc "Automated pipeline to fetch certificates, build the Xcode project, and publish to TestFlight"

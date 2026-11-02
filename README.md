@@ -7,7 +7,7 @@ StoreKit 2 through OpenIAP and rewarded ads through the Unity Ads iOS bridge.
 ## App Store configuration
 
 - Bundle identifier: `com.pringgadanifortress`
-- Minimum iOS version: 15.0
+- Minimum iOS version: 17.0 (required by the bundled OpenIAP frameworks)
 - In-app purchase products:
   - `com.pringgadanifortress.instant_gold_1`
   - `com.pringgadanifortress.instant_gold_2`
@@ -42,9 +42,23 @@ and upload the IPA to TestFlight. Configure these repository secrets:
 - `APP_STORE_CONNECT_API_KEY_ID`
 - `APP_STORE_CONNECT_API_ISSUER_ID`
 - `APP_STORE_CONNECT_API_KEY_KEY` (base64-encoded `.p8` key)
-- `BUILD_CERTIFICATE_P12` (base64-encoded distribution certificate)
+- `BUILD_CERTIFICATE_P12` (base64 of an Apple Distribution `.p12` containing its private key)
+- `BUILD_CERTIFICATE_P12_PASSWORD` (only if the `.p12` is password-protected)
 - `IOS_TEAM_ID`
 
-Run **Initialize Certificates** once to create the distribution certificate and
-provisioning profile. The profile name defaults to `PringgadaniFortress AppStore`;
-set the optional `IOS_PROVISIONING_PROFILE_NAME` repository variable to override it.
+Reuse a valid Apple Distribution certificate from your Apple Developer team
+(for example, the `.p12` artifact from another app in the same team); do not
+create a new distribution certificate just for this project. Base64-encode the
+`.p12` file itself, not its containing ZIP:
+
+```bash
+base64 -w 0 certificate.p12
+```
+
+The workflow imports the certificate using an empty password unless
+`BUILD_CERTIFICATE_P12_PASSWORD` is set. The profile name defaults to
+`PringgadaniFortress AppStore`; set the optional
+`IOS_PROVISIONING_PROFILE_NAME` repository variable to override it.
+
+Use **Actions → Check IAP Products → Run workflow** to verify product IDs and
+their App Store Connect states.

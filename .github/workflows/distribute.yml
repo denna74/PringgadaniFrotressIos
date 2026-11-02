@@ -53,20 +53,30 @@ jobs:
       - name: Import Code Signing Certificate
         env:
           BUILD_CERTIFICATE_P12: ${{ secrets.BUILD_CERTIFICATE_P12 }}
+          BUILD_CERTIFICATE_P12_PASSWORD: ${{ secrets.BUILD_CERTIFICATE_P12_PASSWORD }}
         run: |
+          if [ -z "$BUILD_CERTIFICATE_P12" ]; then
+            echo "::error::Set BUILD_CERTIFICATE_P12 to a Base64-encoded Apple Distribution .p12 certificate."
+            exit 1
+          fi
+
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
 
-          echo -n "$BUILD_CERTIFICATE_P12" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$BUILD_CERTIFICATE_P12" | base64 --decode -o "$CERTIFICATE_PATH"
 
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          security import $CERTIFICATE_PATH -P "" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
+          if ! security import "$CERTIFICATE_PATH" -P "${BUILD_CERTIFICATE_P12_PASSWORD:-}" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"; then
+            echo "::error::Could not import the .p12. Check that BUILD_CERTIFICATE_P12 is Base64 of a valid Apple Distribution .p12 with its private key; set BUILD_CERTIFICATE_P12_PASSWORD if it is password-protected."
+            exit 1
+          fi
+
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
 
       - name: Cache Unity Ads iOS Plugin
         id: cache-unity-ads
@@ -86,6 +96,22 @@ jobs:
           UNITY_ADS_SDK_URL: ${{ secrets.UNITY_ADS_SDK_URL }}
           UNITY_ADS_VERSION: ${{ secrets.UNITY_ADS_VERSION }}
 
+      - name: Verify Godot IAP Plugin
+        run: |
+          IAP_PLUGIN_VERSION=$(grep -E '^version=' addons/godot-iap/plugin.cfg | cut -d'"' -f2)
+          if [ "$IAP_PLUGIN_VERSION" != "3.4.1" ]; then
+            echo "::error::Unexpected godot-iap version '$IAP_PLUGIN_VERSION' (expected 3.4.1)"
+            exit 1
+          fi
+          for FRAMEWORK in GodotIap SwiftGodotRuntime; do
+            MIN_OS=$(/usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" \
+              "addons/godot-iap/bin/ios/${FRAMEWORK}.framework/Info.plist")
+            if [ "$MIN_OS" != "17.0" ]; then
+              echo "::error::${FRAMEWORK}.framework requires iOS '$MIN_OS' (expected 17.0)"
+              exit 1
+            fi
+          done
+
       - name: Export Xcode Project
         run: |
           set -eux
@@ -96,6 +122,9 @@ jobs:
           mkdir -p build/ios
           godot --headless --import
           godot --headless --export-release "iOS" build/ios/PringgadaniFortress.xcodeproj
+
+      - name: Configure Native iOS Launch Screen
+        run: ruby tools/patch_ios_launch_screen.rb
 
       - name: Run Fastlane Pipeline
         run: fastlane ios deploy_testflight
