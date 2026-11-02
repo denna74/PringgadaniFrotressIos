@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dnsm7kpg0yr7a"]
+
+[ext_resource type="Script" uid="uid://clkgjpwhh5tcf" path="res://scenes/effects/heal_zone.gd" id="1"]
+
+[node name="HealZone" type="Node3D" unique_id=1484881121]
+script = ExtResource("1")

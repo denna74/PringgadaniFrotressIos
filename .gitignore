@@ -1,0 +1,29 @@
+# Godot editor & cache
+.godot/
+
+# Import & UID cache
+*.import
+*.uid
+
+# Build output
+build/
+
+# Unity Ads iOS plugin built artifacts (produced by build.sh on CI)
+ios/plugins/unity-ads/bin/
+ios/plugins/unity-ads/vendor/
+
+# Fastlane
+vendor/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Ruby
+Gemfile.lock
+
+# macOS
+.DS_Store
+
+# Opencode superpowers
+.superpowers/

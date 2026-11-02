@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://4nb3271soghw"]
+
+[ext_resource type="Script" uid="uid://mikr6rhf3y3p" path="res://scenes/run/RunHUD.gd" id="1"]
+
+[node name="RunHUD" type="CanvasLayer" unique_id=1575214274]
+script = ExtResource("1")

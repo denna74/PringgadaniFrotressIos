@@ -1,0 +1,13 @@
+[config]
+name="UnityAds"
+binary="bin/unity-ads-bridge.xcframework"
+
+initialization="register_godot_unity_ads_types"
+deinitialization="unregister_godot_unity_ads_types"
+
+[dependencies]
+embedded=["vendor/UnityAds.xcframework"]
+system=["AdSupport.framework", "WebKit.framework", "StoreKit.framework", "CoreTelephony.framework", "SystemConfiguration.framework", "AVFoundation.framework", "AppTrackingTransparency.framework"]
+capabilities=[]
+files=[]
+linker_flags=["-ObjC"]

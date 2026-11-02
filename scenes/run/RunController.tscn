@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/run/RunController.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/run/RunHUD.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/run/InvasionManager.tscn" id="3"]
+
+[node name="RunController" type="Node3D"]
+script = ExtResource("1")
+
+[node name="RunHUD" parent="." instance=ExtResource("2")]
+
+[node name="InvasionManager" parent="." instance=ExtResource("3")]

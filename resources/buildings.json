@@ -1,0 +1,55 @@
+[
+  {
+    "id": "pendopo",
+    "name_en": "Castle Center",
+    "name_id": "Pendopo (Istana)",
+    "type": "castle",
+    "max_level": 30,
+    "base_cost_gold": 0,
+    "gold_per_day": 0,
+    "defense_value": 0,
+    "description_en": "Your castle center. Must survive all waves.",
+    "description_id": "Istana. Harus bertahan dari semua gelombang.",
+    "grid_size": {"w": 3, "h": 3}
+  },
+  {
+    "id": "tambang_emas",
+    "name_en": "Gold Mine",
+    "name_id": "Tambang Emas",
+    "type": "economy",
+    "max_level": 20,
+    "base_cost_gold": 80,
+    "gold_per_day": 12,
+    "description_en": "Generates the most gold each day.",
+    "description_id": "Menghasilkan emas paling banyak setiap hari.",
+    "grid_size": {"w": 3, "h": 3}
+  },
+  {
+    "id": "menara",
+    "name_en": "Tower",
+    "name_id": "Menara",
+    "type": "tower",
+    "max_level": 10,
+    "base_cost_gold": 60,
+    "gold_per_day": 0,
+    "damage_base": 15,
+    "range_base": 150,
+    "description_en": "Auto-attacks nearby enemies.",
+    "description_id": "Menyerang musuh terdekat secara otomatis.",
+    "grid_size": {"w": 3, "h": 3}
+  },
+  {
+    "id": "barak",
+    "name_en": "Barracks",
+    "name_id": "Barak",
+    "type": "military",
+    "max_level": 15,
+    "base_cost_gold": 40,
+    "gold_per_day": 0,
+    "troop_type": "infantry",
+    "training_speed": 3,
+    "description_en": "Trains infantry troops.",
+    "description_id": "Melatih pasukan infantri.",
+    "grid_size": {"w": 3, "h": 3}
+  }
+]

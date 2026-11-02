@@ -1,0 +1,117 @@
+name: Distribute to TestFlight
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  export-and-build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install Fastlane
+        run: gem install fastlane
+
+      - name: Cache Godot Editor & Templates
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            /Applications/Godot.app/
+            ~/Library/Application Support/Godot/
+          key: ${{ runner.os }}-godot-v4.7
+
+      - name: Setup Godot Engine
+        run: |
+          if [ ! -x /usr/local/bin/godot ]; then
+            if [ ! -d /Applications/Godot.app ]; then
+              curl -LO https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_macos.universal.zip
+              unzip Godot_v4.7-stable_macos.universal.zip
+              mv Godot.app /Applications/
+            fi
+            ln -s /Applications/Godot.app/Contents/MacOS/Godot /usr/local/bin/godot
+            mkdir -p ~/Library/Application\ Support/Godot/export_templates/4.7.stable
+            if [ -z "$(ls -A ~/Library/Application\ Support/Godot/export_templates/4.7.stable)" ]; then
+              curl -LO https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_export_templates.tpz
+              unzip Godot_v4.7-stable_export_templates.tpz -d /tmp/templates
+              mv /tmp/templates/templates/* ~/Library/Application\ Support/Godot/export_templates/4.7.stable/
+              rm -rf /tmp/templates Godot_v4.7-stable_export_templates.tpz
+            fi
+          fi
+
+      - name: Import Code Signing Certificate
+        env:
+          BUILD_CERTIFICATE_P12: ${{ secrets.BUILD_CERTIFICATE_P12 }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          echo -n "$BUILD_CERTIFICATE_P12" | base64 --decode -o $CERTIFICATE_PATH
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH -P "" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Cache Unity Ads iOS Plugin
+        id: cache-unity-ads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/plugins/unity-ads/bin/
+            ios/plugins/unity-ads/vendor/
+          key: ${{ runner.os }}-unity-ads-4.18.1-${{ hashFiles('ios/plugins/unity-ads/build.sh', 'ios/plugins/unity-ads/src/**', 'ios/plugins/unity-ads/unity-ads.gdip') }}
+
+      - name: Compile Unity Ads iOS Plugin
+        if: steps.cache-unity-ads.outputs.cache-hit != 'true'
+        run: |
+          brew install scons
+          ./ios/plugins/unity-ads/build.sh
+        env:
+          UNITY_ADS_SDK_URL: ${{ secrets.UNITY_ADS_SDK_URL }}
+          UNITY_ADS_VERSION: ${{ secrets.UNITY_ADS_VERSION }}
+
+      - name: Export Xcode Project
+        run: |
+          set -eux
+          pwd
+          ls -l project.godot export_presets.cfg
+          test -f project.godot
+          test -f export_presets.cfg
+          mkdir -p build/ios
+          godot --headless --import
+          godot --headless --export-release "iOS" build/ios/PringgadaniFortress.xcodeproj
+
+      - name: Run Fastlane Pipeline
+        run: fastlane ios deploy_testflight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          IOS_BUNDLE_IDENTIFIER: com.pringgadanifortress
+          IOS_PROVISIONING_PROFILE_NAME: ${{ vars.IOS_PROVISIONING_PROFILE_NAME || 'PringgadaniFortress AppStore' }}
+          IOS_BUILD_NUMBER: ${{ github.run_number }}
+
+      - name: Upload IPA Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PringgadaniFortress-ipa
+          path: build/ios/*.ipa
+          retention-days: 30

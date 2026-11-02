@@ -1,0 +1,84 @@
+[gd_scene format=3 uid="uid://iqm6050l4yyd"]
+
+[ext_resource type="Script" uid="uid://c2gk2khg0hbft" path="res://scenes/run/LoadingScreen.gd" id="1"]
+
+[node name="LoadingScreen" type="CanvasLayer" unique_id=1791628637]
+layer = 100
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1641537970]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.05, 0.02, 0.01, 0.98)
+
+[node name="Title" type="Label" parent="." unique_id=1671246749]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = 18.0
+offset_right = 200.0
+offset_bottom = 78.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.9, 0.8, 0.3, 1)
+theme_override_font_sizes/font_size = 24
+text = "Building Fortress..."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LogoSpin" type="AnimatedSprite2D" parent="." unique_id=1029460434]
+position = Vector2(640, 238)
+scale = Vector2(0.6, 0.6)
+
+[node name="ProgressBar" type="ProgressBar" parent="." unique_id=352143317]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = 93.0
+offset_right = 150.0
+offset_bottom = 123.0
+grow_horizontal = 2
+grow_vertical = 2
+show_percentage = false
+
+[node name="StatusLabel" type="Label" parent="." unique_id=1162189780]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = 138.0
+offset_right = 200.0
+offset_bottom = 178.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.7, 0.65, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "Loading..."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KingIcon" type="TextureRect" parent="." unique_id=65312138]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -32.0
+offset_top = -160.0
+offset_right = 32.0
+offset_bottom = -96.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
