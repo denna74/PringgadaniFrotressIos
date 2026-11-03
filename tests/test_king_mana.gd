@@ -85,6 +85,26 @@ func _run() -> void:
 					push_error("mana_changed emit[%d] = %s expected %s" % [i, emitted[i], expected_emits[i]])
 					pass_all = false
 
+		kc.stamina = 50.0
+		kc.request_dash()
+		if not is_equal_approx(kc.stamina, 30.0):
+			push_error("dash did not spend its stamina cost")
+			pass_all = false
+
+		kc.mana = 100.0
+		if not kc.spend_mana(50.0) or not is_equal_approx(kc.mana, 50.0):
+			push_error("spend_mana did not deduct the requested MP")
+			pass_all = false
+		if kc.spend_mana(500.0) or not is_equal_approx(kc.mana, 50.0):
+			push_error("failed spend_mana changed MP")
+			pass_all = false
+		kc.mana = 100.0
+		kc.berserk_active = true
+		kc._tick_berserk_drain(2.0)
+		if not kc.mana < 100.0:
+			push_error("Berserk did not drain MP")
+			pass_all = false
+
 	var page: Control = load("res://scenes/hub/ProfilePage.gd").new()
 	root.add_child(page)
 	await process_frame

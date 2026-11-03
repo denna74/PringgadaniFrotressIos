@@ -32,6 +32,8 @@ func _update_hp_bar() -> void:
 	var bar: Sprite3D = get_node_or_null("HPBar")
 	if bar:
 		bar.scale.x = 50 * ratio
+		bar.offset.x = -0.5 * bar.texture.get_width() * (1.0 - ratio) / ratio \
+			if ratio > 0.0 else 0.0
 		if ratio > 0.5:
 			bar.modulate = Color(0.2, 0.8, 0.2)
 		elif ratio > 0.25:
@@ -129,6 +131,7 @@ func reset_for_pool() -> void:
 	var bar: Sprite3D = get_node_or_null("HPBar")
 	if bar:
 		bar.scale.x = 50.0
+		bar.offset.x = 0.0
 		bar.modulate = Color(0.2, 0.8, 0.2)
 
 

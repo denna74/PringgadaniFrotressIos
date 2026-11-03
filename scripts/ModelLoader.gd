@@ -171,9 +171,9 @@ static func load_enemy(type: String, is_boss: bool = false) -> Node3D:
 	return _enemy_templates[key].duplicate()
 
 
-# These ranged attack clips hold the bow out to the side, so the body pose is offset
-# from the arrow's firing line. Rotate the torso to align the pose with the target.
+# Attack clips whose poses face sideways need a torso yaw correction.
 const RANGED_ATTACK_YAW_OFFSET_DEG: float = -90.0
+const KARNA_ATTACK1_YAW_OFFSET_DEG: float = -90.0
 
 
 # World position of the bow hand. In the archery clips the LEFT hand holds the bow
@@ -470,12 +470,24 @@ static func _bake_torso_yaw(anim: Animation, yaw_deg: float) -> void:
 		return
 
 
+static func _bake_root_yaw(anim: Animation, yaw_deg: float) -> void:
+	var track: int = anim.add_track(Animation.TYPE_ROTATION_3D)
+	anim.track_set_path(track, NodePath("."))
+	var rotation := Quaternion(Vector3.UP, deg_to_rad(yaw_deg))
+	anim.rotation_track_insert_key(track, 0.0, rotation)
+	anim.rotation_track_insert_key(track, anim.length, rotation)
+
+
 static func _copy_animation(root: Node3D, anim_library: AnimationLibrary, target_name: String, anim: Animation) -> void:
 	_remap_tracks_to_rig(root, anim)
 	var archer_attack: bool = target_name == "attack" and _is_archer_rig(root)
 	var boma_attack: bool = String(root.get_meta("boss_rig", "")) == "boma" \
 		and target_name in ["attack", "power_attack"]
-	if archer_attack or boma_attack:
+	var karna_attack1: bool = String(root.get_meta("boss_rig", "")) == "karna" \
+		and target_name == "attack"
+	if karna_attack1:
+		_bake_root_yaw(anim, KARNA_ATTACK1_YAW_OFFSET_DEG)
+	elif archer_attack or boma_attack:
 		_bake_torso_yaw(anim, RANGED_ATTACK_YAW_OFFSET_DEG)
 	anim_library.add_animation(target_name, anim)
 

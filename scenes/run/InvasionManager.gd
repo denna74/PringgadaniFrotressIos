@@ -39,18 +39,21 @@ var _update_frame: int = 0
 var _cam_ref: Camera3D = null
 
 const ENEMY_ATTACK_RANGE: float = 2.0
+const BOSS_MELEE_ATTACK_RANGE: float = 3.0
 # How close an enemy has to get before it stops walking toward its mark. Parking
 # spots are offset by this so a settled enemy is still inside its own reach.
 const MOVE_STOP_TOLERANCE: float = 0.15
 const ENEMY_ATTACK_COOLDOWN: float = 1.0
-# How long a swing owns the enemy once it starts. Damage and SFX fire on the
-# cooldown, but the pose was being re-decided every frame from "is a target in
-# reach", so a target drifting out of range let walk/idle overwrite the swing a
-# frame after it began -- damage and sound with the enemy visibly walking.
-const ATTACK_ANIM_LOCK: float = 0.45
+const ANIMATION_IMPACT_PROGRESS: float = 0.5
+const BOSS_DASH_ANIMATION_FPS: float = 30.0
+const BOSS_DASH_EFFECT_LEAD_FRAMES: float = 2.0
 
 const ENEMY_SCRIPT: GDScript = preload("res://scenes/run/enemy_script.gd")
 const BERSERK_AURA_SCRIPT: GDScript = preload("res://scenes/effects/BerserkAura.gd")
+const DASH_TRAIL_SCRIPT: GDScript = preload("res://scenes/effects/DashTrail.gd")
+const EARTHQUAKE_EFFECT_SCRIPT: GDScript = preload("res://scenes/effects/EarthquakeEffect.gd")
+const ARC_SLASH_SCRIPT: GDScript = preload("res://scenes/effects/ArcSlash.gd")
+const CIRCLE_WAVE_SCRIPT: GDScript = preload("res://scenes/effects/CircleWave.gd")
 
 var _pending_spawns: Array = []
 
@@ -261,6 +264,7 @@ func _configure_enemy(enemy: Node3D, data: Dictionary, pos: Vector3) -> void:
 	enemy.set_meta("enemy_data", data)
 	enemy.set_meta("attack_cooldown", 0.0)
 	enemy.set_meta("attack_anim_lock", 0.0)
+	enemy.set_meta("pending_enemy_attack", {})
 	enemy.set_meta("nav_stalled_time", 0.0)
 	enemy.set_meta("nav_fallback_active", false)
 	enemy.set_meta("anim_state", "idle")
@@ -271,7 +275,20 @@ func _configure_enemy(enemy: Node3D, data: Dictionary, pos: Vector3) -> void:
 	enemy.set_meta("boss_quake_cd", 0.0)
 	enemy.set_meta("boss_dash_timer", 0.0)
 	enemy.set_meta("boss_dash_dir", Vector3.ZERO)
+	enemy.set_meta("boss_dash_remaining", 0.0)
+	enemy.set_meta("boss_dash_speed", 0.0)
+	enemy.set_meta("boss_dash_effect_timer", 0.0)
+	enemy.set_meta("boss_dash_effect_fired", false)
+	enemy.set_meta("boss_quake_timer", 0.0)
 	enemy.set_meta("boss_berserk_active", false)
+	enemy.set_meta("boss_skill_lock", 0.0)
+	enemy.set_meta("boss_power_attack_cd", 0.0)
+	var stamina_max: float = float(data.get("stamina_max", 0.0))
+	enemy.set_meta("boss_stamina_max", stamina_max)
+	enemy.set_meta("boss_stamina", stamina_max)
+	var mana_max: float = float(data.get("mana_max", 0.0))
+	enemy.set_meta("boss_mana_max", mana_max)
+	enemy.set_meta("boss_mana", mana_max)
 	enemy.add_to_group("enemies")
 	if enemy.has_method("_update_hp_bar"):
 		enemy.call("_update_hp_bar")
@@ -368,16 +385,36 @@ func _move_enemies(delta: float) -> void:
 		var enemy_data: Dictionary = enemy.get_meta("enemy_data", {})
 		var speed: float = enemy_data.get("speed", 2.5)
 
+		_tick_pending_enemy_attack(enemy, delta)
+		_tick_pending_boss_earthquake(enemy, delta)
+
 		# Boss cooldowns tick every frame, before any throttling check, so a dashed or
 		# slammed boss cannot chain its special by being off-camera.
 		_tick_boss_cooldowns(enemy, delta)
+		var skill_lock: float = maxf(
+			float(enemy.get_meta("boss_skill_lock", 0.0)) - delta, 0.0
+		)
+		enemy.set_meta("boss_skill_lock", skill_lock)
 		var attack_lock: float = maxf(float(enemy.get_meta("attack_anim_lock", 0.0)) - delta, 0.0)
 		enemy.set_meta("attack_anim_lock", attack_lock)
+		var attack_cooldown: float = maxf(
+			float(enemy.get_meta("attack_cooldown", 0.0)) - delta,
+			0.0
+		)
+		enemy.set_meta("attack_cooldown", attack_cooldown)
 
 		# A dashing boss is under script control, not the nav agent: steering it here
 		# would fight the dash and pull it back toward the pendopo.
 		if enemy.get_meta("boss_dash_timer", 0.0) > 0.0:
 			_tick_boss_dash(enemy, delta)
+			continue
+		if skill_lock > 0.0:
+			continue
+		_try_boss_special(enemy, enemy_data)
+		if enemy.get_meta("boss_dash_timer", 0.0) > 0.0:
+			_tick_boss_dash(enemy, delta)
+			continue
+		if float(enemy.get_meta("boss_skill_lock", 0.0)) > 0.0:
 			continue
 
 		var nav: NavigationAgent3D = enemy.get_nav()
@@ -473,27 +510,18 @@ func _move_enemies(delta: float) -> void:
 			if soldier_face.length() > 0.01:
 				var soldier_yaw: float = atan2(soldier_face.x, soldier_face.z)
 				enemy.rotation.y = lerp_angle(enemy.rotation.y, soldier_yaw, 10.0 * delta)
-			if anim_state != "attack":
-				if _play_enemy_anim(enemy, _attack_anim_for(enemy_data), 0.2):
-					enemy.set_meta("anim_state", "attack")
 			_try_enemy_attack(enemy, enemy_data, delta, soldier_target)
 		elif king_in_range:
 			var face_dir: Vector3 = (_king_ref.position - enemy.position).normalized()
 			if face_dir.length() > 0.01:
 				var attack_yaw: float = atan2(face_dir.x, face_dir.z)
 				enemy.rotation.y = lerp_angle(enemy.rotation.y, attack_yaw, 10.0 * delta)
-			if anim_state != "attack":
-				if _play_enemy_anim(enemy, _attack_anim_for(enemy_data), 0.2):
-					enemy.set_meta("anim_state", "attack")
 			_try_enemy_attack(enemy, enemy_data, delta)
 		elif nav_done and not is_moving:
 			var face_dir: Vector3 = (pendopo_pos - enemy.position).normalized()
 			if face_dir.length() > 0.01:
 				var attack_yaw: float = atan2(face_dir.x, face_dir.z)
 				enemy.rotation.y = lerp_angle(enemy.rotation.y, attack_yaw, 10.0 * delta)
-			if anim_state != "attack":
-				if _play_enemy_anim(enemy, _attack_anim_for(enemy_data), 0.2):
-					enemy.set_meta("anim_state", "attack")
 			_try_enemy_attack(enemy, enemy_data, delta)
 		elif attack_lock > 0.0:
 			# Committed to a swing. The target may have drifted out of reach, but
@@ -571,7 +599,11 @@ func _enemy_data_of(enemy: Node3D) -> Dictionary:
 
 
 func _enemy_standoff(enemy_data: Dictionary) -> float:
-	return ProgressionData.ARROW_RANGE if _is_ranged_data(enemy_data) else ENEMY_ATTACK_RANGE
+	if _is_ranged_data(enemy_data):
+		return ProgressionData.ARROW_RANGE
+	if enemy_data.get("is_boss", false):
+		return BOSS_MELEE_ATTACK_RANGE
+	return ENEMY_ATTACK_RANGE
 
 
 func _is_in_attack_cone(enemy: Node3D, target_pos: Vector3) -> bool:
@@ -585,11 +617,24 @@ func _is_in_attack_cone(enemy: Node3D, target_pos: Vector3) -> bool:
 	return lateral_dist <= ENEMY_ATTACK_HALF_WIDTH
 
 
-func _try_enemy_attack(enemy: Node3D, enemy_data: Dictionary, delta: float, soldier_target: Node3D = null) -> void:
+func _try_enemy_attack(
+	enemy: Node3D,
+	enemy_data: Dictionary,
+	_delta: float,
+	soldier_target: Node3D = null
+) -> void:
+	if enemy.get_meta("pending_enemy_attack", {}).get("active", false):
+		return
 	var attack_cooldown: float = enemy.get_meta("attack_cooldown", 0.0)
-	attack_cooldown -= delta
 	if attack_cooldown > 0.0:
-		enemy.set_meta("attack_cooldown", attack_cooldown)
+		var attack_lock: float = float(enemy.get_meta("attack_anim_lock", 0.0))
+		if attack_lock <= 0.0 and enemy.get_meta("anim_state", "") == "attack":
+			if _play_enemy_anim(
+				enemy,
+				"boss/idle" if enemy_data.get("is_boss", false) else "enemy/idle",
+				0.2
+			):
+				enemy.set_meta("anim_state", "idle")
 		return
 
 	var ranged: bool = _is_ranged_data(enemy_data)
@@ -597,50 +642,160 @@ func _try_enemy_attack(enemy: Node3D, enemy_data: Dictionary, delta: float, sold
 	if ranged:
 		standoff += RANGED_REACH_SLACK
 
-	if not ranged:
-		SFXManager.play_enemy_swing(enemy.position)
-
 	var attack_damage: float = enemy_data.get("attack", 8.0)
 	if enemy.get_meta("boss_berserk_active", false):
 		attack_damage *= 1.5
-	var attacked: bool = false
-
+	var power_attack: bool = enemy_data.get("is_boss", false) \
+		and str(enemy_data.get("special", "")) == "power_attack" \
+		and float(enemy.get_meta("boss_power_attack_cd", 0.0)) <= 0.0 \
+		and _has_boss_mana(enemy, BOMA_POWER_ATTACK_MANA_COST_RATIO)
+	var arrow_style: String = str(enemy_data.get("arrow_style", ""))
+	if enemy_data.get("is_boss", false) and str(enemy_data.get("boss_id", "")) == BossRegistry.BOMA:
+		arrow_style = "boma_red" if power_attack else "normal"
+	var attack_target: Node3D = null
+	var target_kind: String = ""
 	if soldier_target and is_instance_valid(soldier_target) and soldier_target.has_method("take_damage"):
 		var dist_to_soldier: float = enemy.position.distance_to(soldier_target.position)
 		if dist_to_soldier < standoff:
 			if _is_in_attack_cone(enemy, soldier_target.position):
-				if ranged:
-					_fire_enemy_arrow(enemy, soldier_target, attack_damage)
-				else:
-					soldier_target.take_damage(attack_damage)
-					SFXManager.play_enemy_hit("soldier", enemy.position)
-				attacked = true
+				attack_target = soldier_target
+				target_kind = "soldier"
 
-	if not attacked and _king_ref and is_instance_valid(_king_ref) and _king_ref.has_method("take_damage"):
+	if attack_target == null and _king_ref and is_instance_valid(_king_ref) \
+			and _king_ref.has_method("take_damage"):
 		var dist_to_king: float = enemy.position.distance_to(_king_ref.position)
 		if dist_to_king < standoff and _is_in_attack_cone(enemy, _king_ref.position):
-			if ranged:
-				_fire_enemy_arrow(enemy, _king_ref, attack_damage)
-			else:
-				_king_ref.take_damage(attack_damage)
-				SFXManager.play_enemy_hit("king", enemy.position)
-			attacked = true
+			attack_target = _king_ref
+			target_kind = "king"
 
-	if not attacked:
+	if attack_target == null:
 		var pendopo: Node3D = _pendopo_ref_in_reach(enemy, standoff)
 		if pendopo != null and pendopo.has_method("take_damage"):
-			if ranged:
-				_fire_enemy_arrow(enemy, pendopo, attack_damage)
-			else:
-				pendopo.take_damage(attack_damage)
-				SFXManager.play_enemy_hit("building", enemy.position)
-	enemy.set_meta("attack_cooldown", ENEMY_RANGED_COOLDOWN if ranged else ENEMY_ATTACK_COOLDOWN)
-	if _play_enemy_anim(enemy, _attack_anim_for(enemy_data), 0.15):
+			attack_target = pendopo
+			target_kind = "building"
+
+	if power_attack and attack_target == null:
+		power_attack = false
+		arrow_style = "normal"
+	var animation_name: String = _attack_anim_for(enemy_data, power_attack)
+	var animation_length: float = _enemy_animation_length(
+		enemy, animation_name, ENEMY_ATTACK_COOLDOWN
+	)
+	if not _play_enemy_anim(enemy, animation_name, 0.15):
+		animation_length = ENEMY_ATTACK_COOLDOWN
+	else:
 		enemy.set_meta("anim_state", "attack")
-	# Hold the swing so walk/idle cannot steal the pose on the next frame, which
-	# is what made damage and SFX play while the enemy appeared to just walk.
-	enemy.set_meta("attack_anim_lock", ATTACK_ANIM_LOCK)
-	_try_boss_special(enemy, enemy_data)
+	var cooldown: float = ENEMY_RANGED_COOLDOWN if ranged else ENEMY_ATTACK_COOLDOWN
+	enemy.set_meta("attack_cooldown", cooldown)
+	enemy.set_meta("attack_anim_lock", animation_length)
+	enemy.set_meta("pending_enemy_attack", {
+		"active": true,
+		"timer": animation_length if power_attack \
+			else _animation_impact_delay(
+				animation_length,
+				0.4 if str(enemy_data.get("boss_id", "")) == BossRegistry.KALAPRACONA else -1.0
+			),
+		"animation_name": animation_name,
+		"target": attack_target,
+		"target_kind": target_kind,
+		"damage": attack_damage,
+		"ranged": ranged,
+		"arrow_style": arrow_style,
+		"power_attack": power_attack,
+		"standoff": standoff,
+	})
+	if not ranged:
+		SFXManager.play_enemy_swing(enemy.position)
+
+
+func _tick_pending_enemy_attack(enemy: Node3D, delta: float) -> void:
+	var pending: Dictionary = enemy.get_meta("pending_enemy_attack", {})
+	if not pending.get("active", false):
+		return
+	var timer: float = maxf(float(pending.get("timer", 0.0)) - delta, 0.0)
+	pending["timer"] = timer
+	if timer > 0.0:
+		enemy.set_meta("pending_enemy_attack", pending)
+		return
+	enemy.set_meta("pending_enemy_attack", {})
+	if not pending.get("ranged", false):
+		_spawn_boss_attack_slash(
+			enemy,
+			enemy.get_meta("enemy_data", {}),
+			str(pending.get("animation_name", ""))
+		)
+
+	var target: Node3D = pending.get("target")
+	if target == null or not is_instance_valid(target) or not target.is_inside_tree() \
+			or not target.has_method("take_damage"):
+		return
+	if target.has_method("is_alive") and not target.is_alive():
+		return
+	var current_distance: float = enemy.global_position.distance_to(target.global_position)
+	if current_distance >= float(pending.get("standoff", ENEMY_ATTACK_RANGE)) \
+			or not _is_in_attack_cone(enemy, target.global_position):
+		return
+
+	if pending.get("ranged", false):
+		var is_power_attack: bool = pending.get("power_attack", false)
+		if is_power_attack and not _spend_boss_mana(enemy, BOMA_POWER_ATTACK_MANA_COST_RATIO):
+			return
+		_fire_enemy_arrow(
+			enemy,
+			target,
+			float(pending.get("damage", 0.0)),
+			str(pending.get("arrow_style", "")),
+			is_power_attack
+		)
+		if is_power_attack:
+			enemy.set_meta("boss_power_attack_cd", BOSS_POWER_ATTACK_COOLDOWN)
+		return
+
+	target.take_damage(float(pending.get("damage", 0.0)))
+	SFXManager.play_enemy_hit(str(pending.get("target_kind", "king")), enemy.position)
+
+
+func _enemy_animation_length(enemy: Node3D, animation_name: String, fallback: float) -> float:
+	var anim_player: AnimationPlayer = enemy.get_anim_player()
+	if anim_player == null or not anim_player.has_animation(animation_name):
+		return fallback
+	return maxf(anim_player.get_animation(animation_name).length, 0.0)
+
+
+func _animation_impact_delay(animation_length: float, progress: float = -1.0) -> float:
+	var impact_progress: float = progress if progress >= 0.0 else ANIMATION_IMPACT_PROGRESS
+	return maxf(animation_length * impact_progress, 0.0)
+
+
+func _spawn_boss_attack_slash(
+	enemy: Node3D,
+	enemy_data: Dictionary,
+	animation_name: String = ""
+) -> void:
+	if not enemy_data.get("is_boss", false):
+		return
+	var boss_id: String = str(enemy_data.get("boss_id", ""))
+	if boss_id not in [BossRegistry.ASWATAMA, BossRegistry.KARNA]:
+		return
+	if boss_id == BossRegistry.KARNA and animation_name == "boss/attack_3":
+		var wave := CIRCLE_WAVE_SCRIPT.new() as Node3D
+		wave.name = "BossAttackCircleWave"
+		wave.set("wave_color", Color(1.0, 0.12, 0.08, 0.9))
+		wave.position = Vector3(0.0, 1.0, 1.4)
+		enemy.add_child(wave)
+		return
+	var slash := ARC_SLASH_SCRIPT.new() as Node3D
+	slash.name = "BossAttackArcSlash"
+	slash.set("slash_color", Color(1.0, 0.12, 0.08, 0.9))
+	slash.position = Vector3(0.0, 1.0, 1.4)
+	enemy.add_child(slash)
+
+
+func _dash_effect_delay(animation_length: float) -> float:
+	return maxf(
+		animation_length - BOSS_DASH_EFFECT_LEAD_FRAMES / BOSS_DASH_ANIMATION_FPS,
+		0.0
+	)
 
 
 # ─── Boss specials ───
@@ -653,17 +808,28 @@ func _try_enemy_attack(enemy: Node3D, enemy_data: Dictionary, delta: float, sold
 # with no counterplay.
 const BOSS_DASH_MIN_DISTANCE: float = 3.0
 const BOSS_DASH_MAX_DISTANCE: float = 9.0
-const BOSS_DASH_SPEED_MULT: float = 3.2
+const BOSS_DASH_SPEED: float = 16.0
 const BOSS_DASH_DURATION: float = 0.35
+const BOSS_DASH_MAX_TRAVEL: float = 5.5
+const BOSS_DASH_STOP_DISTANCE: float = 1.5
 const BOSS_DASH_COOLDOWN: float = 4.0
+const BOSS_DASH_STAMINA_COST: float = 25.0
+const BOSS_STAMINA_REGEN: float = 12.0
 const BOSS_EARTHQUAKE_COOLDOWN: float = 9.0
+const BOSS_MANA_REGEN_RATIO: float = 0.025
+const BOMA_POWER_ATTACK_MANA_COST_RATIO: float = 0.2
+const KARNA_EARTHQUAKE_MANA_COST_RATIO: float = 0.25
+const KARNA_BERSERK_MANA_COST_RATIO: float = 0.5
+const BOSS_EARTHQUAKE_LOCK: float = 0.9
 const BOSS_EARTHQUAKE_RADIUS: float = 5.0
 const BOSS_EARTHQUAKE_MULT: float = 1.8
+const BOSS_BERSERK_LOCK: float = 1.0
+const BOSS_POWER_ATTACK_COOLDOWN: float = 7.0
 
 
-func _try_boss_special(enemy: Node3D, enemy_data: Dictionary) -> void:
+func _try_boss_special(enemy: Node3D, enemy_data: Dictionary) -> bool:
 	if not enemy_data.get("is_boss", false):
-		return
+		return false
 	var special: String = str(enemy_data.get("special", ""))
 	var specials: Array = enemy_data.get("specials", [])
 	var has_explicit_specials: bool = not specials.is_empty()
@@ -671,46 +837,63 @@ func _try_boss_special(enemy: Node3D, enemy_data: Dictionary) -> void:
 		not has_explicit_specials and special == "dash"
 	)
 	var can_quake: bool = specials.has("earthquake") or (
-		not has_explicit_specials and special == "dash"
+		not has_explicit_specials and special == "earthquake"
 	)
 	var can_berserk: bool = specials.has("berserk")
 
 	var max_health: float = float(enemy.get_meta("max_health", 0.0))
 	var health: float = float(enemy.get_meta("current_health", max_health))
 	if can_berserk and not enemy.get_meta("boss_berserk_active", false) \
-			and max_health > 0.0 and health / max_health <= 0.5:
+			and max_health > 0.0 and health / max_health <= 0.5 \
+			and _spend_boss_mana(enemy, KARNA_BERSERK_MANA_COST_RATIO):
 		_activate_boss_berserk(enemy)
-		return
+		return true
 
 	if not can_dash and not can_quake:
-		return
+		return false
 
 	var dash_cd: float = enemy.get_meta("boss_dash_cd", 0.0)
 	var quake_cd: float = enemy.get_meta("boss_quake_cd", 0.0)
 
 	var target: Node3D = _special_target(enemy)
 	if target == null:
-		return
+		return false
 	var dist: float = enemy.position.distance_to(target.position)
 
 	if can_dash and dist >= BOSS_DASH_MIN_DISTANCE \
-			and dist <= BOSS_DASH_MAX_DISTANCE and dash_cd <= 0.0:
-		if _play_enemy_anim(enemy, "boss/dash", 0.15):
-			enemy.set_meta("boss_dash_cd", BOSS_DASH_COOLDOWN)
-			_start_boss_dash(enemy, target)
-		return
+			and dist <= BOSS_DASH_MAX_DISTANCE and dash_cd <= 0.0 \
+			and _spend_boss_stamina(enemy, BOSS_DASH_STAMINA_COST):
+		var dash_length: float = _enemy_animation_length(
+			enemy, "boss/dash", BOSS_DASH_DURATION
+		)
+		_play_enemy_anim(enemy, "boss/dash", 0.15)
+		SFXManager.play_dash()
+		enemy.set_meta("boss_dash_cd", BOSS_DASH_COOLDOWN)
+		_start_boss_dash(enemy, target, dash_length)
+		return true
 
 	# Only slam when actually adjacent, so it reads as a punish for standing too close.
-	if can_quake and dist < BOSS_EARTHQUAKE_RADIUS and quake_cd <= 0.0:
-		if _play_enemy_anim(enemy, "boss/earthquake", 0.15):
-			enemy.set_meta("boss_quake_cd", BOSS_EARTHQUAKE_COOLDOWN)
-			_resolve_boss_earthquake(enemy, enemy_data)
+	if can_quake and dist < BOSS_EARTHQUAKE_RADIUS and quake_cd <= 0.0 \
+			and _has_boss_mana(enemy, KARNA_EARTHQUAKE_MANA_COST_RATIO):
+		var quake_length: float = _enemy_animation_length(
+			enemy, "boss/earthquake", BOSS_EARTHQUAKE_LOCK
+		)
+		_play_enemy_anim(enemy, "boss/earthquake", 0.15)
+		SFXManager.play_earth_quake_skill()
+		_spend_boss_mana(enemy, KARNA_EARTHQUAKE_MANA_COST_RATIO)
+		enemy.set_meta("boss_quake_cd", BOSS_EARTHQUAKE_COOLDOWN)
+		enemy.set_meta("boss_skill_lock", quake_length)
+		enemy.set_meta("attack_cooldown", quake_length + ENEMY_ATTACK_COOLDOWN)
+		enemy.set_meta("boss_quake_timer", _animation_impact_delay(quake_length))
+		return true
+	return false
 
 
 func _activate_boss_berserk(enemy: Node3D) -> void:
 	enemy.set_meta("boss_berserk_active", true)
-	if _play_enemy_anim(enemy, "boss/berserk", 0.15):
-		enemy.set_meta("anim_state", "attack")
+	enemy.set_meta("boss_skill_lock", BOSS_BERSERK_LOCK)
+	_play_enemy_anim(enemy, "boss/berserk", 0.15)
+	enemy.set_meta("anim_state", "attack")
 	var aura := BERSERK_AURA_SCRIPT.new() as Node3D
 	aura.name = "BossBerserkAura"
 	enemy.add_child(aura)
@@ -726,13 +909,64 @@ func _special_target(enemy: Node3D) -> Node3D:
 	return _pendopo_ref_in_reach(enemy, BOSS_EARTHQUAKE_RADIUS + 1.0)
 
 
-func _start_boss_dash(enemy: Node3D, target: Node3D) -> void:
+func _start_boss_dash(
+	enemy: Node3D,
+	target: Node3D,
+	dash_length: float = 0.0
+) -> void:
 	var dir: Vector3 = target.global_position - enemy.global_position
 	dir.y = 0.0
 	if dir.length() < 0.001:
 		return
+	var dash_distance: float = minf(
+		BOSS_DASH_MAX_TRAVEL,
+		maxf(dir.length() - BOSS_DASH_STOP_DISTANCE, 0.0)
+	)
+	if dash_distance <= 0.0:
+		return
+	if dash_length <= 0.0:
+		dash_length = _enemy_animation_length(
+			enemy, "boss/dash", BOSS_DASH_DURATION
+		)
 	enemy.set_meta("boss_dash_dir", dir.normalized())
-	enemy.set_meta("boss_dash_timer", BOSS_DASH_DURATION)
+	enemy.set_meta("boss_dash_remaining", dash_distance)
+	enemy.set_meta("boss_dash_timer", dash_length)
+	enemy.set_meta("boss_dash_speed", dash_distance / maxf(dash_length, 0.001))
+	enemy.set_meta("boss_dash_effect_timer", _dash_effect_delay(dash_length))
+	enemy.set_meta("boss_dash_effect_fired", false)
+	enemy.rotation.y = atan2(dir.x, dir.z)
+
+
+func _spawn_boss_dash_effect(enemy: Node3D, direction: Vector3) -> void:
+	var effect := DASH_TRAIL_SCRIPT.new() as Node3D
+	effect.name = "BossDashTrail"
+	effect.set("facing", atan2(direction.x, direction.z))
+	var effect_parent: Node = get_parent() if get_parent() != null else self
+	effect_parent.add_child(effect)
+	effect.global_position = enemy.global_position
+
+
+func _spend_boss_stamina(enemy: Node3D, cost: float) -> bool:
+	var stamina: float = float(enemy.get_meta("boss_stamina", 0.0))
+	if stamina < cost:
+		return false
+	enemy.set_meta("boss_stamina", stamina - cost)
+	return true
+
+
+func _has_boss_mana(enemy: Node3D, cost_ratio: float) -> bool:
+	var mana_max: float = float(enemy.get_meta("boss_mana_max", 0.0))
+	var mana: float = float(enemy.get_meta("boss_mana", 0.0))
+	return mana_max > 0.0 and mana >= mana_max * cost_ratio
+
+
+func _spend_boss_mana(enemy: Node3D, cost_ratio: float) -> bool:
+	if not _has_boss_mana(enemy, cost_ratio):
+		return false
+	var mana_max: float = float(enemy.get_meta("boss_mana_max", 0.0))
+	var mana: float = float(enemy.get_meta("boss_mana", mana_max))
+	enemy.set_meta("boss_mana", mana - mana_max * cost_ratio)
+	return true
 
 
 func _tick_boss_cooldowns(enemy: Node3D, delta: float) -> void:
@@ -743,34 +977,82 @@ func _tick_boss_cooldowns(enemy: Node3D, delta: float) -> void:
 		enemy.set_meta("boss_dash_cd", dash_cd - delta)
 	var quake_cd: float = enemy.get_meta("boss_quake_cd", 0.0)
 	if quake_cd > 0.0:
-		enemy.set_meta("boss_quake_cd", quake_cd - delta)
+		enemy.set_meta("boss_quake_cd", maxf(quake_cd - delta, 0.0))
+	var power_cd: float = float(enemy.get_meta("boss_power_attack_cd", 0.0))
+	if power_cd > 0.0:
+		enemy.set_meta("boss_power_attack_cd", maxf(power_cd - delta, 0.0))
+	var stamina_max: float = float(enemy.get_meta("boss_stamina_max", 0.0))
+	if stamina_max > 0.0:
+		var stamina: float = float(enemy.get_meta("boss_stamina", stamina_max))
+		enemy.set_meta("boss_stamina", minf(stamina + BOSS_STAMINA_REGEN * delta, stamina_max))
+	var mana_max: float = float(enemy.get_meta("boss_mana_max", 0.0))
+	if mana_max > 0.0:
+		var mana: float = float(enemy.get_meta("boss_mana", mana_max))
+		enemy.set_meta(
+			"boss_mana",
+			minf(mana + mana_max * BOSS_MANA_REGEN_RATIO * delta, mana_max)
+		)
 
 
 func _tick_boss_dash(enemy: Node3D, delta: float) -> void:
 	var timer: float = enemy.get_meta("boss_dash_timer", 0.0)
 	if timer <= 0.0:
 		return
-	timer -= delta
-	enemy.set_meta("boss_dash_timer", timer)
 	var dir: Vector3 = enemy.get_meta("boss_dash_dir", Vector3.ZERO)
-	if dir.length() > 0.01 and timer > 0.0:
-		enemy.position += dir * BOSS_DASH_SPEED_MULT * delta
-	if timer <= 0.0:
+	var remaining: float = float(enemy.get_meta("boss_dash_remaining", 0.0))
+	if dir.length() > 0.01 and remaining > 0.0:
+		var travel: float = minf(
+			float(enemy.get_meta("boss_dash_speed", BOSS_DASH_SPEED)) * delta,
+			remaining
+		)
+		enemy.position += dir * travel
+		remaining -= travel
+		enemy.set_meta("boss_dash_remaining", remaining)
+	var effect_timer: float = maxf(
+		float(enemy.get_meta("boss_dash_effect_timer", 0.0)) - delta,
+		0.0
+	)
+	enemy.set_meta("boss_dash_effect_timer", effect_timer)
+	if effect_timer <= 0.0 and not enemy.get_meta("boss_dash_effect_fired", false):
+		_spawn_boss_dash_effect(enemy, dir)
+		enemy.set_meta("boss_dash_effect_fired", true)
+	timer = maxf(timer - delta, 0.0)
+	enemy.set_meta("boss_dash_timer", timer)
+	if timer <= 0.0 or remaining <= 0.0:
+		enemy.set_meta("boss_dash_timer", 0.0)
+		enemy.set_meta("boss_dash_remaining", 0.0)
+		enemy.set_meta("boss_dash_speed", 0.0)
 		enemy.set_meta("boss_dash_dir", Vector3.ZERO)
 		# Hand the boss back to the normal locomotion states rather than leaving it stuck
 		# on a clip that will never be re-entered.
 		enemy.set_meta("anim_state", "")
 
 
+func _tick_pending_boss_earthquake(enemy: Node3D, delta: float) -> void:
+	var timer: float = float(enemy.get_meta("boss_quake_timer", 0.0))
+	if timer <= 0.0:
+		return
+	timer = maxf(timer - delta, 0.0)
+	enemy.set_meta("boss_quake_timer", timer)
+	if timer <= 0.0:
+		_resolve_boss_earthquake(enemy, enemy.get_meta("enemy_data", {}))
+
+
 func _resolve_boss_earthquake(enemy: Node3D, enemy_data: Dictionary) -> void:
 	var center: Vector3 = enemy.global_position
+	var effect := EARTHQUAKE_EFFECT_SCRIPT.new() as Node3D
+	effect.name = "BossEarthquakeEffect"
+	var effect_parent: Node = get_parent() if get_parent() != null else self
+	effect_parent.add_child(effect)
+	effect.global_position = center + Vector3(0.0, 0.1, 0.0)
 	var berserk_mult: float = 1.5 if enemy.get_meta("boss_berserk_active", false) else 1.0
 	var damage: float = float(enemy_data.get("attack", 8.0)) \
 		* BOSS_EARTHQUAKE_MULT * berserk_mult
 
-	var soldier: Node3D = SpatialIndex.get_nearest(center, BOSS_EARTHQUAKE_RADIUS, "troops")
-	if soldier != null and is_instance_valid(soldier) and soldier.has_method("take_damage"):
-		if enemy.position.distance_to(soldier.position) <= BOSS_EARTHQUAKE_RADIUS:
+	for soldier in get_tree().get_nodes_in_group("troops"):
+		if not is_instance_valid(soldier) or not soldier.has_method("take_damage"):
+			continue
+		if center.distance_to(soldier.global_position) <= BOSS_EARTHQUAKE_RADIUS:
 			soldier.take_damage(damage)
 			SFXManager.play_enemy_hit("soldier", center)
 
@@ -779,29 +1061,34 @@ func _resolve_boss_earthquake(enemy: Node3D, enemy_data: Dictionary) -> void:
 			_king_ref.take_damage(damage)
 			SFXManager.play_enemy_hit("king", center)
 
-	var pendopo: Node3D = _pendopo_ref_in_reach(enemy, BOSS_EARTHQUAKE_RADIUS)
-	if pendopo != null and pendopo.has_method("take_damage"):
-		pendopo.take_damage(damage)
-		SFXManager.play_enemy_hit("building", center)
+	for pendopo in _pendopo_refs:
+		if not is_instance_valid(pendopo) or _is_pendopo_destroyed(pendopo):
+			continue
+		if center.distance_to(pendopo.global_position) <= BOSS_EARTHQUAKE_RADIUS \
+				and pendopo.has_method("take_damage"):
+			pendopo.take_damage(damage)
+			SFXManager.play_enemy_hit("building", center)
 
 
-# A boss with a named special uses that clip when it attacks, so Boma's red
-# arrow is fired out of its power attack rather than a generic swing.
-#
 # A boss with attack variants cycles through those clips. Dash is a movement clip and
 # never lands here; it is played by _try_boss_special() when the boss closes on a target.
-func _attack_anim_for(enemy_data: Dictionary) -> String:
+func _attack_anim_for(enemy_data: Dictionary, power_attack: bool = false) -> String:
 	var prefix: String = "boss/" if enemy_data.get("is_boss", false) else "enemy/"
-	var special: String = str(enemy_data.get("special", ""))
-	if prefix == "boss/" and special == "power_attack":
-		return prefix + special
+	if prefix == "boss/" and power_attack:
+		return prefix + "power_attack"
 	var variants: Array = enemy_data.get("attack_variants", [])
 	if prefix == "boss/" and not variants.is_empty():
 		return prefix + str(variants[randi_range(0, variants.size() - 1)])
 	return prefix + "attack"
 
 
-func _fire_enemy_arrow(enemy: Node3D, target: Node3D, damage: float) -> void:
+func _fire_enemy_arrow(
+	enemy: Node3D,
+	target: Node3D,
+	damage: float,
+	style: String = "",
+	power_aura: bool = false
+) -> void:
 	var arrow: Node3D = ARROW_SCRIPT.acquire()
 	if arrow == null:
 		return
@@ -822,7 +1109,7 @@ func _fire_enemy_arrow(enemy: Node3D, target: Node3D, damage: float) -> void:
 	var muzzle: Vector3 = ModelLoader.bow_hand_point(enemy)
 	if dir_h.length() > 0.001:
 		muzzle += dir_h.normalized() * 0.4
-	arrow.setup(target, muzzle, damage, str(enemy.get_meta("enemy_data", {}).get("arrow_style", "")))
+	arrow.setup(target, muzzle, damage, style, power_aura)
 	SFXManager.play_arrow_shot(enemy.global_position)
 
 

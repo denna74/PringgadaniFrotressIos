@@ -150,6 +150,10 @@ func _test_boss_spawn_data() -> void:
 	_check("Aswatama spawns with its own id and name",
 		aswa.get("boss_id", "") == "aswatama" and "Aswatama" in str(aswa.get("name", "")))
 	_check("Aswatama dashes", aswa.get("special", "") == "dash")
+	_check("Aswatama uses melee attacks", aswa.get("ranged", true) == false)
+	var aswatama_specials: Array = aswa.get("specials", [])
+	_check("Aswatama has dash and earthquake",
+		aswatama_specials.has("dash") and aswatama_specials.has("earthquake"))
 	var karna_specials: Array = karna.get("specials", [])
 	_check("Karna uses its own name, rig and abilities",
 		karna.get("name", "") == "Karna" and karna.get("model", "") == "karna"

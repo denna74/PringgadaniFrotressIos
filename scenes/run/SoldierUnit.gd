@@ -323,6 +323,12 @@ func _move_toward(target: Vector3, delta: float) -> Vector3:
 	var next_position: Vector3 = _nav.get_next_path_position()
 	var dir := Vector3(next_position.x - global_position.x, 0.0, next_position.z - global_position.z)
 	if dir.length() < 0.01:
+		if target_is_far and _nav_retry_timer <= 0.0:
+			# A stale or unsynchronized map can leave the agent unfinished while its
+			# next waypoint is still its current position. Re-path instead of idling here.
+			_nav.target_position = target
+			_last_nav_target = target
+			_nav_retry_timer = NAV_RETRY_INTERVAL
 		return Vector3.ZERO
 	dir = dir.normalized()
 	position += dir * move_speed * delta
@@ -409,6 +415,8 @@ func _update_hp_bar() -> void:
 		return
 	var ratio: float = clampf(soldier_hp / maxf(soldier_max_hp, 1.0), 0.0, 1.0)
 	_hp_bar.scale.x = 50 * ratio
+	_hp_bar.offset.x = -0.5 * _hp_bar.texture.get_width() * (1.0 - ratio) / ratio \
+		if ratio > 0.0 else 0.0
 	if ratio > 0.5:
 		_hp_bar.modulate = Color(0.2, 0.8, 0.2)
 	elif ratio > 0.25:

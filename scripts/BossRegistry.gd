@@ -42,9 +42,10 @@ const BOSSES: Dictionary = {
 		"speed": 2.5,
 		"scale": 1.4,
 		"color": Color(0.35, 0.45, 0.9),
-		"ranged": true,
+		"ranged": false,
 		"arrow_style": "",
 		"special": "dash",
+		"specials": ["dash", "earthquake"],
 		"role": "final",
 	},
 	KARNA: {

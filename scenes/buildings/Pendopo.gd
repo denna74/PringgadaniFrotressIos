@@ -75,6 +75,8 @@ func _update_hp_bar() -> void:
 		return
 	_last_hp_ratio = hp_ratio
 	_hp_bar_sprite.scale.x = 60 * hp_ratio
+	_hp_bar_sprite.offset.x = -0.5 * _hp_bar_sprite.texture.get_width() \
+		* (1.0 - hp_ratio) / hp_ratio if hp_ratio > 0.0 else 0.0
 	if hp_ratio > 0.5:
 		_hp_bar_sprite.modulate = Color(0.2, 0.8, 0.2)
 	elif hp_ratio > 0.25:

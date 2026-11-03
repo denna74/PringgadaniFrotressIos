@@ -60,10 +60,7 @@ func _check_nodes() -> void:
 		await process_frame
 		return
 
-	_check(
-		"one node per stage from current+2 down to 1",
-		container.get_child_count() == 6
-	)
+	_check("stage nodes cover the unlocked range", container.get_child_count() == 6)
 
 	_check_art(container, 6, "stage_locked.png", true)
 	_check_art(container, 5, "stage_locked.png", true)

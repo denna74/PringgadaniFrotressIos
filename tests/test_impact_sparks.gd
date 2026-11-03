@@ -103,6 +103,13 @@ func _run() -> void:
 	await process_frame
 	if _count_sparks(arena_c) != 1:
 		failures.append("king hit did not spawn exactly one spark (got %d)" % _count_sparks(arena_c))
+	var hp_after_hit: float = kc.king_hp
+	kc.take_damage(10.0)
+	if not is_equal_approx(kc.king_hp, hp_after_hit - 10.0):
+		failures.append("normal king hit did not decrease HP")
+	await process_frame
+	if _count_sparks(arena_c) != 2:
+		failures.append("second king hit did not spawn a spark (got %d)" % _count_sparks(arena_c))
 
 	# --- 6. soldier receiver: a real soldier taking a hit spawns one spark ---
 	var arena_d := Node3D.new()

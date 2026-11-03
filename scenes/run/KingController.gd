@@ -676,9 +676,9 @@ func attack() -> void:
 
 
 func take_damage(amount: float) -> void:
-	king_hp -= ProgressionData.armor_damage(amount, king_defense)
 	if amount > 0.0:
 		IMPACT_SPARK.spawn(self)
+	king_hp -= ProgressionData.armor_damage(amount, king_defense)
 	hp_changed.emit(king_hp, king_max_hp)
 	if king_hp <= 0:
 		king_hp = 0

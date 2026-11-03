@@ -67,6 +67,8 @@ static func spawn_boss(wave_number: int, stage_number: int, king_level: int = 1,
 	data["max_health"] = stats["hp"]
 	data["attack"] = stats["attack"]
 	data["defense"] = stats["defense"]
+	data["stamina_max"] = stats.get("stamina_max", 0.0)
+	data["mana_max"] = stats.get("mana_max", 0.0)
 	data["speed"] = float(boss.get("speed", 2.2))
 	return data
 

@@ -210,16 +210,21 @@ static func boss_stats(boss_id: String, stage: int) -> Dictionary:
 			"hp": [520.0, 4000.0],
 			"attack": [90.0, 300.0],
 			"defense": [16.0, 42.0],
+			"mana": [25.0, 200.0],
 		},
 		BossRegistry.ASWATAMA: {
 			"hp": [600.0, 4500.0],
 			"attack": [100.0, 360.0],
 			"defense": [20.0, 50.0],
+			"mana": [30.0, 310.0],
+			"stamina": [50.0, 200.0],
 		},
 		BossRegistry.KARNA: {
 			"hp": [800.0, 8500.0],
 			"attack": [120.0, 400.0],
 			"defense": [30.0, 80.0],
+			"mana": [35.0, 350.0],
+			"stamina": [75.0, 250.0],
 		},
 	}
 	var selected: Dictionary = endpoints.get(
@@ -229,6 +234,16 @@ static func boss_stats(boss_id: String, stage: int) -> Dictionary:
 		"hp": _stage_stat(selected["hp"][0], selected["hp"][1], stage),
 		"attack": _stage_stat(selected["attack"][0], selected["attack"][1], stage),
 		"defense": _stage_stat(selected["defense"][0], selected["defense"][1], stage),
+		"stamina_max": _stage_stat(
+			selected.get("stamina", [0.0, 0.0])[0],
+			selected.get("stamina", [0.0, 0.0])[1],
+			stage
+		),
+		"mana_max": _stage_stat(
+			selected.get("mana", [0.0, 0.0])[0],
+			selected.get("mana", [0.0, 0.0])[1],
+			stage
+		),
 	}
 
 

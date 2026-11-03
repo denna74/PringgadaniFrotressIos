@@ -19,6 +19,7 @@ var _damage: float
 var _released: bool = false
 var _style: String = STYLE_NORMAL
 var _slash_shadow: Node3D = null
+var _power_aura: CPUParticles3D = null
 
 static var _pool: Array[Node3D] = []
 static var _shaft_mesh: Mesh = null
@@ -67,7 +68,13 @@ static func _get_tip_mesh() -> Mesh:
 	return _tip_mesh
 
 
-func setup(target: Node3D, from: Vector3, damage: float, style: String = STYLE_NORMAL) -> void:
+func setup(
+	target: Node3D,
+	from: Vector3,
+	damage: float,
+	style: String = STYLE_NORMAL,
+	power_aura: bool = false
+) -> void:
 	_released = false
 	_target = target
 	_target_position = target.global_position
@@ -77,6 +84,8 @@ func setup(target: Node3D, from: Vector3, damage: float, style: String = STYLE_N
 	set_physics_process(true)
 	look_at_from_position(from, _target_position, Vector3.UP)
 	_apply_style()
+	if power_aura:
+		_build_power_aura()
 
 
 func get_arrow_style() -> String:
@@ -92,6 +101,9 @@ func _apply_style() -> void:
 	if _slash_shadow != null and is_instance_valid(_slash_shadow):
 		_slash_shadow.queue_free()
 		_slash_shadow = null
+	if _power_aura != null and is_instance_valid(_power_aura):
+		_power_aura.queue_free()
+		_power_aura = null
 	_shaft_mat = null
 	_tip_mat = null
 	_style_shaft = STYLE_NORMAL
@@ -101,6 +113,67 @@ func _apply_style() -> void:
 		_style_tip = STYLE_BOMA_RED
 		_build_slash_shadow()
 	_restyle_existing_mesh()
+
+
+func has_power_aura() -> bool:
+	return _power_aura != null and is_instance_valid(_power_aura)
+
+
+func _build_power_aura() -> void:
+	var material := StandardMaterial3D.new()
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.albedo_texture = _create_aura_texture()
+	material.albedo_color = Color(1.0, 0.18, 0.06, 0.9)
+	material.emission_enabled = true
+	material.emission = Color(1.0, 0.12, 0.02)
+	material.emission_energy_multiplier = 2.0
+
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.7, 0.7)
+	quad.material = material
+
+	_power_aura = CPUParticles3D.new()
+	_power_aura.name = "PowerAttackAura"
+	_power_aura.mesh = quad
+	_power_aura.amount = 32
+	_power_aura.lifetime = 0.35
+	_power_aura.explosiveness = 0.0
+	_power_aura.emitting = true
+	_power_aura.direction = Vector3(0.0, 0.0, 1.0)
+	_power_aura.spread = 35.0
+	_power_aura.initial_velocity_min = 0.8
+	_power_aura.initial_velocity_max = 2.0
+	_power_aura.gravity = Vector3.ZERO
+	_power_aura.scale_amount_min = 0.35
+	_power_aura.scale_amount_max = 0.8
+	_power_aura.color_ramp = _create_aura_gradient()
+	_power_aura.position = Vector3(0.0, 0.0, 0.4)
+	_power_aura.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_power_aura)
+
+
+func _create_aura_gradient() -> Gradient:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
+	gradient.colors = PackedColorArray([
+		Color(1.0, 0.9, 0.3, 1.0),
+		Color(1.0, 0.2, 0.05, 0.8),
+		Color(0.8, 0.02, 0.0, 0.0),
+	])
+	return gradient
+
+
+func _create_aura_texture() -> Texture2D:
+	var image := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	var center := Vector2(15.5, 15.5)
+	for y in 32:
+		for x in 32:
+			var distance := Vector2(x, y).distance_to(center) / center.length()
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, pow(clampf(1.0 - distance, 0.0, 1.0), 2.0)))
+	return ImageTexture.create_from_image(image)
 
 
 func _restyle_existing_mesh() -> void:

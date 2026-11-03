@@ -4,7 +4,7 @@ const SLASH_WIDTH: float = 3.6
 const SLASH_HEIGHT: float = 3.0
 const SLASH_DELAY: float = 0.12
 const SLASH_DURATION: float = 0.15
-const SLASH_COLOR: Color = Color(0.2, 0.6, 1.0, 0.8)
+const DEFAULT_SLASH_COLOR: Color = Color(0.2, 0.6, 1.0, 0.8)
 const SLASH_TILT_DEG: float = -55.0
 const CRESCENT_OUTER_N: float = -0.20
 const CRESCENT_OUTER_R: float = 0.37
@@ -17,6 +17,7 @@ const TEXTURE_SIZE := 256
 static var _cached_textures: Dictionary = {}
 
 var mirror: bool = false
+var slash_color: Color = DEFAULT_SLASH_COLOR
 
 var _quad: MeshInstance3D = null
 var _material: StandardMaterial3D = null
@@ -38,14 +39,14 @@ func _build_quad() -> void:
 	_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_material.no_depth_test = true
 	_material.albedo_texture = _create_slash_texture()
-	_material.albedo_color = SLASH_COLOR
+	_material.albedo_color = slash_color
 	_material.emission_enabled = true
-	_material.emission = SLASH_COLOR
+	_material.emission = slash_color
 
 	_quad = MeshInstance3D.new()
 	_quad.mesh = quad
 	_quad.material_override = _material
-	_quad.rotation_degrees = Vector3(SLASH_TILT_DEG, 0, 0)
+	_quad.rotation_degrees = Vector3(SLASH_TILT_DEG, 0.0, 0.0)
 	add_child(_quad)
 
 
@@ -65,24 +66,28 @@ func _set_progress(t: float) -> void:
 	var fade_out := clampf(1.0 - (t - 0.6) / 0.4, 0.0, 1.0)
 	var alpha := minf(fade_in, fade_out)
 	_quad.scale = Vector3.ONE * lerpf(0.85, 1.15, t)
-	_material.albedo_color.a = alpha
-	_material.emission = SLASH_COLOR * alpha
+	_material.albedo_color = Color(
+		slash_color.r, slash_color.g, slash_color.b, slash_color.a * alpha
+	)
+	_material.emission = slash_color * alpha
 
 
 func _create_slash_texture() -> ImageTexture:
-	if _cached_textures.has(mirror):
-		return _cached_textures[mirror] as ImageTexture
+	var cache_key: String = str(mirror)
+	if _cached_textures.has(cache_key):
+		return _cached_textures[cache_key] as ImageTexture
 	var img := Image.create(TEXTURE_SIZE, TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
 	for y in TEXTURE_SIZE:
 		for x in TEXTURE_SIZE:
 			var u := float(x) / float(TEXTURE_SIZE - 1)
 			var v := float(y) / float(TEXTURE_SIZE - 1)
+			var sample := Vector2(u, v)
 			if mirror:
-				u = 1.0 - u
-			var alpha := _crescent_alpha(Vector2(u, v))
+				sample.x = 1.0 - sample.x
+			var alpha := _crescent_alpha(sample)
 			img.set_pixel(x, y, Color(1, 1, 1, alpha))
 	var texture := ImageTexture.create_from_image(img)
-	_cached_textures[mirror] = texture
+	_cached_textures[cache_key] = texture
 	return texture
 
 
