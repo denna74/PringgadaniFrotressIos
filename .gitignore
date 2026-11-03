@@ -4,6 +4,8 @@
 # Import & UID cache
 *.import
 *.uid
+!assets/models/**/*.jpg.import
+!assets/models/**/*.png.import
 
 # Build output
 build/

@@ -1,18 +1,25 @@
 extends Control
 
-## The Market fills the hub's content panel: a single-column list of consumable
-## rows. Compact rows keep all consumables visible without scrolling, unlike the
-## old two-column grid of tall cards.
-
-const ROW_HEIGHT := 60
-const ROW_GAP := 6
-const ROW_WIDTH := 400 
-const ICON_SIZE := 40
-const LIST_TOP_OFFSET := 25.0
+const PANEL_WIDTH := 512
+const ITEMS_PER_CATEGORY := 3
+const TAB_POSITION := Vector2(25,70)
+const TAB_SIZE := Vector2(508, 35)
+const TAB_WIDTH := 156
+const TAB_GAP := 20
+const ITEMS_POSITION := Vector2(20, 144)
+const CARD_WIDTH := 500
+const CARD_HEIGHT := 120
+const CARD_GAP := 8
+const ICON_SIZE := 96
+const CARD_INFO_POSITION := Vector2(116, 8)
+const CARD_INFO_SIZE := Vector2(CARD_WIDTH - 132, CARD_HEIGHT - 16)
 const POPUP_W := 420
 const POPUP_H := 260
 
-var _list: VBoxContainer = null
+var _items_container: VBoxContainer = null
+var _filter: String = "heal"
+var _tabs: Dictionary = {}
+var _filtered_items: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -22,98 +29,148 @@ func _ready() -> void:
 
 
 func _setup_ui() -> void:
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
+	var tabs := HBoxContainer.new()
+	tabs.name = "CategoryTabs"
+	tabs.position = TAB_POSITION
+	tabs.size = TAB_SIZE
+	tabs.add_theme_constant_override("separation", TAB_GAP)
+	add_child(tabs)
 
-	var wrap := MarginContainer.new()
-	wrap.add_theme_constant_override("margin_top", int(LIST_TOP_OFFSET))
-	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(wrap)
+	var tab_data := [
+		["heal", "market_tab_hp"],
+		["mana", "market_tab_mp"],
+		["stamina", "market_tab_stamina"],
+	]
+	for entry: Array in tab_data:
+		var tab := ButtonBuilder.create_small_button(
+			TranslationManager.t(entry[1]), TAB_WIDTH, int(TAB_SIZE.y))
+		tab.name = "MarketTab_" + entry[0]
+		tab.add_theme_font_size_override("font_size", 22)
+		tab.pressed.connect(_set_filter.bind(entry[0]))
+		tab.pressed.connect(ClickPlayer.play_select_3)
+		_tabs[entry[0]] = tab
+		tabs.add_child(tab)
+	_update_tab_styles()
 
-	_list = VBoxContainer.new()
-	_list.name = "List"
-	_list.alignment = BoxContainer.ALIGNMENT_CENTER
-	_list.add_theme_constant_override("separation", ROW_GAP)
-	wrap.add_child(_list)
+	_items_container = VBoxContainer.new()
+	_items_container.name = "Items"
+	_items_container.position = ITEMS_POSITION
+	_items_container.size = Vector2(
+		PANEL_WIDTH, CARD_HEIGHT * ITEMS_PER_CATEGORY + CARD_GAP * (ITEMS_PER_CATEGORY - 1))
+	_items_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	_items_container.add_theme_constant_override("separation", CARD_GAP)
+	add_child(_items_container)
+
+
+func _set_filter(filter_name: String) -> void:
+	_filter = filter_name
+	_update_tab_styles()
+	_build_items()
+
+
+func _update_tab_styles() -> void:
+	for filter_name: String in _tabs:
+		var tab: Button = _tabs[filter_name]
+		var selected: bool = filter_name == _filter
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.58, 0.34, 0.1, 0.98) if selected else Color(0.3, 0.18, 0.08, 0.9)
+		style.border_width_top = 2 if selected else 1
+		style.border_width_bottom = 2 if selected else 1
+		style.border_width_left = 2 if selected else 1
+		style.border_width_right = 2 if selected else 1
+		style.border_color = Color(1.0, 0.76, 0.28, 1.0) if selected else Color(0.5, 0.3, 0.1, 1.0)
+		style.corner_radius_top_left = 3
+		style.corner_radius_top_right = 3
+		style.corner_radius_bottom_left = 3
+		style.corner_radius_bottom_right = 3
+		tab.add_theme_stylebox_override("normal", style)
+		tab.add_theme_stylebox_override("hover", style)
+		tab.add_theme_stylebox_override("pressed", style)
 
 
 func _build_items() -> void:
-	for child in _list.get_children():
+	_filtered_items.clear()
+	for item in ConsumableDatabase.get_all():
+		if String(item.get("effect", "")) == _filter:
+			_filtered_items.append(item)
+	_show_current_page()
+
+
+func _show_current_page() -> void:
+	for child in _items_container.get_children():
+		_items_container.remove_child(child)
 		child.queue_free()
 
-	for item in ConsumableDatabase.get_all():
-		_list.add_child(_build_item_row(item))
+	for item in _filtered_items:
+		_items_container.add_child(_build_item_row(item))
 
 
 func _build_item_row(item: Dictionary) -> Panel:
-	var panel := ButtonBuilder.create_panel(ROW_WIDTH, ROW_HEIGHT)
-	panel.custom_minimum_size = Vector2(ROW_WIDTH, ROW_HEIGHT)
-
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 8)
-	margin.add_theme_constant_override("margin_right", 8)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	panel.add_child(margin)
-
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 10)
-	margin.add_child(hbox)
+	var panel := ButtonBuilder.create_panel(CARD_WIDTH, CARD_HEIGHT)
+	panel.name = "ItemRow_" + String(item["id"])
+	panel.custom_minimum_size = Vector2(CARD_WIDTH, CARD_HEIGHT)
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 	var icon_path: String = item.get("icon", "")
 	if not icon_path.is_empty():
 		var icon := TextureRect.new()
+		icon.name = "Icon"
+		icon.position = Vector2(10, 10)
+		icon.size = Vector2(ICON_SIZE, ICON_SIZE)
 		icon.texture = load(icon_path)
-		icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		hbox.add_child(icon)
+		panel.add_child(icon)
 
-	var name_box := VBoxContainer.new()
-	name_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_box.add_theme_constant_override("separation", 0)
-	hbox.add_child(name_box)
+	var info := VBoxContainer.new()
+	info.position = CARD_INFO_POSITION
+	info.size = CARD_INFO_SIZE
+	info.add_theme_constant_override("separation", 3)
+	panel.add_child(info)
+
+	var header := HBoxContainer.new()
+	header.name = "CardHeader"
+	header.add_theme_constant_override("separation", 6)
+	info.add_child(header)
 
 	var color := ConsumableDatabase.get_rarity_color(item.get("rarity", "common"))
 	var name_lbl := Label.new()
+	name_lbl.name = "NameLabel"
 	name_lbl.text = TranslationManager.item_name(item)
-	name_lbl.add_theme_font_size_override("font_size", 18)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.size_flags_vertical = Control.SIZE_FILL
+	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 21)
 	name_lbl.add_theme_color_override("font_color", color)
-	name_box.add_child(name_lbl)
-
-	var effect_lbl := Label.new()
-	effect_lbl.text = _effect_text(item)
-	effect_lbl.add_theme_font_size_override("font_size", 14)
-	effect_lbl.add_theme_color_override("font_color", Color(0.55, 0.8, 0.55))
-	name_box.add_child(effect_lbl)
-
-	var buy_box := VBoxContainer.new()
-	buy_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	buy_box.add_theme_constant_override("separation", 2)
-	hbox.add_child(buy_box)
-
-	var owned_lbl := Label.new()
-	owned_lbl.text = TranslationManager.t("market_owned").replace(
-		"{n}", str(SaveManager.get_inventory_count(item["id"])))
-	owned_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	owned_lbl.add_theme_font_size_override("font_size", 13)
-	owned_lbl.add_theme_color_override("font_color", Color(0.7, 0.75, 0.55))
-	buy_box.add_child(owned_lbl)
+	header.add_child(name_lbl)
 
 	var price: int = item.get("price", 0)
 	var can_buy: bool = SaveManager.gold >= price
 	var buy_btn := ButtonBuilder.create_small_button(
-		TranslationManager.t("market_buy").replace("{p}", str(price)), 110, 30)
+		TranslationManager.t("market_buy").replace("{p}", str(price)), 120, 30)
+	buy_btn.name = "BuyButton"
 	buy_btn.add_theme_font_size_override("font_size", 16)
 	buy_btn.disabled = not can_buy
 	if can_buy:
 		buy_btn.pressed.connect(_show_buy_confirm.bind(item))
 		buy_btn.pressed.connect(ClickPlayer.play_select_3)
-	buy_box.add_child(buy_btn)
+	header.add_child(buy_btn)
+
+	var effect_lbl := Label.new()
+	effect_lbl.name = "EffectLabel"
+	effect_lbl.text = _effect_text(item)
+	effect_lbl.add_theme_font_size_override("font_size", 21)
+	effect_lbl.add_theme_color_override("font_color", Color(0.55, 0.8, 0.55))
+	info.add_child(effect_lbl)
+
+	var owned_lbl := Label.new()
+	owned_lbl.name = "OwnedLabel"
+	owned_lbl.text = TranslationManager.t("market_owned").replace(
+		"{n}", str(SaveManager.get_inventory_count(item["id"])))
+	owned_lbl.add_theme_font_size_override("font_size", 21)
+	owned_lbl.add_theme_color_override("font_color", Color(0.7, 0.75, 0.55))
+	info.add_child(owned_lbl)
 
 	return panel
 
