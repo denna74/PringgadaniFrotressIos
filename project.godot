@@ -18,7 +18,7 @@ config/features=PackedStringArray("4.7")
 boot_splash/bg_color=Color(0, 0, 0, 1)
 boot_splash/show_image=false
 boot_splash/image="res://assets/dgs_boot_screen.png"
-config/icon="uid://dlxb3mbs1ao34"
+config/icon="res://icon.png"
 boot_splash/show_engine_logo=false
 boot_splash/scale="cover"
 
