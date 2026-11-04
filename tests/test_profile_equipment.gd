@@ -147,13 +147,16 @@ func _run() -> void:
 
 	page._show_equip_picker("head", tm.t("profile_head"))
 	await process_frame
-	var picker: Node = page.find_child("EquipPicker", true, false)
+	var picker: Node = page.get_window().find_child("EquipPicker", true, false)
 	_check("picker opens", picker != null)
-	var picker_panel: Control = page.find_child("EquipPickerPanel", true, false) as Control
-	_check("picker fits the content panel", picker_panel != null and picker_panel.size == Vector2(420, 560))
+	var picker_panel: Control = picker.find_child("EquipPickerPanel", true, false) as Control
+	var picker_overlay := picker as Control
+	_check("picker is centered on screen",
+		picker_panel != null and (picker_panel.get_global_rect().get_center()
+			- picker_overlay.get_global_rect().get_center()).length() < 0.5)
 
-	_check("picker lists equipped item", page.find_child("Choice_sumping_gajah_ngulun", true, false) != null)
-	var equipped_choice := page.find_child("Choice_sumping_gajah_ngulun", true, false) as Button
+	_check("picker lists equipped item", picker.find_child("Choice_sumping_gajah_ngulun", true, false) != null)
+	var equipped_choice := picker.find_child("Choice_sumping_gajah_ngulun", true, false) as Button
 	var equipped_label := equipped_choice.find_child("EquippedLabel", true, false) as Label
 	var effect_label := equipped_choice.find_child("ItemEffects", true, false) as Label
 	var item_name_label := equipped_choice.find_child("ItemName", true, false) as Label
@@ -171,19 +174,21 @@ func _run() -> void:
 			and item_icon.global_position.x < item_name_label.global_position.x
 			and item_icon.global_position.x < effect_label.global_position.x)
 	_check("equipment picker has no scroll container",
-		page.find_child("ScrollContainer", true, false) == null)
-	var garuda_choice: Button = page.find_child("Choice_garuda_mungkur", true, false) as Button
+		picker.find_child("ScrollContainer", true, false) == null)
+	var garuda_choice: Button = picker.find_child("Choice_garuda_mungkur", true, false) as Button
 	_check("picker lists other owned head items", garuda_choice != null)
-	_check("picker hides unowned items", page.find_child("Choice_kuluk_kanigara", true, false) == null)
+	_check("picker hides unowned items", picker.find_child("Choice_kuluk_kanigara", true, false) == null)
 	if garuda_choice != null:
 		garuda_choice.pressed.emit()
 		await process_frame
 	_check("picker equips the chosen item", sm.get_equipped("head") == "garuda_mungkur")
-	_check("picker closes after choosing", page.find_child("EquipPicker", true, false) == null)
+	_check("picker closes after choosing",
+		page.get_window().get_node_or_null("EquipPicker") == null)
 
 	page._show_equip_picker("head", tm.t("profile_head"))
 	await process_frame
-	var unequip_btn: Button = page.find_child("PickerUnequip", true, false) as Button
+	picker = page.get_window().find_child("EquipPicker", true, false)
+	var unequip_btn: Button = picker.find_child("PickerUnequip", true, false) as Button
 	_check("picker offers unequip", unequip_btn != null)
 	if unequip_btn != null:
 		unequip_btn.pressed.emit()
@@ -202,12 +207,13 @@ func _run() -> void:
 			sm.add_to_inventory(String(item["id"]))
 	page._show_equip_picker("head", tm.t("profile_head"))
 	await process_frame
-	var picker_next := page.find_child("PickerNext", true, false) as Button
-	var picker_page_label := page.find_child("PickerPageLabel", true, false) as Label
+	picker = page.get_window().find_child("EquipPicker", true, false)
+	var picker_next := picker.find_child("PickerNext", true, false) as Button
+	var picker_page_label := picker.find_child("PickerPageLabel", true, false) as Label
 	_check("picker pagination appears when owned list exceeds the box",
 		picker_next != null and picker_next.visible
 			and picker_page_label != null and picker_page_label.text != "1 / 1")
-	var picker_list := page.find_child("PickerList", true, false) as VBoxContainer
+	var picker_list := picker.find_child("PickerList", true, false) as VBoxContainer
 	_check("first picker page is capped at five items",
 		picker_list != null and picker_list.get_child_count() == page.PICKER_ITEMS_PER_PAGE)
 	if picker_next != null:
@@ -217,7 +223,7 @@ func _run() -> void:
 		picker_page_label != null and picker_page_label.text.begins_with("2 / "))
 	_check("second picker page stays within five items",
 		picker_list != null and picker_list.get_child_count() <= page.PICKER_ITEMS_PER_PAGE)
-	page.find_child("EquipPicker", true, false).queue_free()
+	page.close_popups()
 	await process_frame
 
 	sm.equipment = {"head": "", "body": "", "right_hand": "", "left_hand": ""}

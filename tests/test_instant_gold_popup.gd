@@ -40,6 +40,8 @@ func _run() -> void:
 		quit(1)
 		return
 	var panel := overlay.get_child(0) as Control
+	_check("gold popup is centered",
+		(panel.get_global_rect().get_center() - overlay.size / 2.0).length() < 0.5)
 	var opt0 := panel.get_node_or_null("GoldOption0") as Button
 	var opt1 := panel.get_node_or_null("GoldOption1") as Button
 	var opt2 := panel.get_node_or_null("GoldOption2") as Button

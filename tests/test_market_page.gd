@@ -65,6 +65,19 @@ func _run() -> void:
 			and page.find_child("ItemRow_stamina_potion_small", true, false) != null
 			and page.find_child("ItemRow_mana_potion_small", true, false) == null)
 
+	var filtered_items: Array = page.get("_filtered_items")
+	page._show_buy_confirm(filtered_items[0])
+	await process_frame
+	var overlay := page.get_window().get_node_or_null("BuyConfirmOverlay") as Control
+	_check("buy confirmation opens", overlay != null)
+	if overlay != null:
+		var popup_panel := overlay.get_child(0) as Control
+		_check("buy confirmation is centered",
+			(popup_panel.position + popup_panel.size / 2.0).is_equal_approx(
+				overlay.size / 2.0))
+		overlay.queue_free()
+		await process_frame
+
 	page.queue_free()
 	await process_frame
 	if _fails == 0:

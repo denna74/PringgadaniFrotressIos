@@ -88,7 +88,10 @@ func _run() -> void:
 	await process_frame
 	var overlay := page.get_window().get_node_or_null("BuildingUpgradeConfirmOverlay")
 	if overlay != null:
-		var panel := overlay.get_child(0)
+		var overlay_control := overlay as Control
+		var panel := overlay_control.get_child(0) as Control
+		_check("upgrade confirmation is centered",
+			(panel.position + panel.size / 2.0).is_equal_approx(overlay_control.size / 2.0))
 		var next_status := panel.find_child("NextLevelStatus", true, false) as Label
 		_check("upgrade confirmation shows only the next level status",
 			next_status != null and next_status.text.contains("1500")

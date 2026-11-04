@@ -305,8 +305,14 @@ func _show_buy_confirm(item: Dictionary) -> void:
 	window.add_child(overlay)
 
 	var panel := ButtonBuilder.create_panel(POPUP_W, POPUP_H)
-	panel.position = Vector2(
-		(window.size.x - POPUP_W) / 2.0, (window.size.y - POPUP_H) / 2.0)
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -POPUP_W / 2.0
+	panel.offset_right = POPUP_W / 2.0
+	panel.offset_top = -POPUP_H / 2.0
+	panel.offset_bottom = POPUP_H / 2.0
 	overlay.add_child(panel)
 
 	var title := ButtonBuilder.create_title_label(

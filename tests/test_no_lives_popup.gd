@@ -54,6 +54,8 @@ func _run() -> void:
 		_check("tapping with no lives shows OUT OF LIVES", overlay != null)
 		if overlay != null:
 			var panel := _find_by_name(overlay, "NoLivesPanel") as Panel
+			_check("out-of-lives popup is centered",
+				(panel.get_global_rect().get_center() - overlay.size / 2.0).length() < 0.5)
 			var title := _find_by_name(overlay, "NoLivesTitle") as Label
 			var refill := _find_by_name(overlay, "NoLivesRefill") as Label
 			var panel_style := panel.get_theme_stylebox("panel") as StyleBoxFlat if panel != null else null

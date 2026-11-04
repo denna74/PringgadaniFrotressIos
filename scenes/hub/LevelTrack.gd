@@ -387,8 +387,7 @@ func _show_life_popup() -> void:
 
 	var panel := ButtonBuilder.create_panel(
 		int(LIFE_POPUP_SIZE.x), int(LIFE_POPUP_SIZE.y))
-	panel.position = Vector2(
-		(1280 - LIFE_POPUP_SIZE.x) / 2.0, (720 - LIFE_POPUP_SIZE.y) / 2.0)
+	_center_popup_panel(panel, LIFE_POPUP_SIZE)
 	overlay.add_child(panel)
 
 	var title := ButtonBuilder.create_title_label(
@@ -490,8 +489,7 @@ func _show_gold_popup() -> void:
 
 	var panel := ButtonBuilder.create_panel(
 		int(GOLD_POPUP_SIZE.x), int(GOLD_POPUP_SIZE.y))
-	panel.position = Vector2(
-		(1280 - GOLD_POPUP_SIZE.x) / 2.0, (720 - GOLD_POPUP_SIZE.y) / 2.0)
+	_center_popup_panel(panel, GOLD_POPUP_SIZE)
 	_gold_popup_overlay.add_child(panel)
 
 	var title := ButtonBuilder.create_title_label(
@@ -578,6 +576,17 @@ func _hide_gold_popup() -> void:
 	if _gold_popup_overlay != null and is_instance_valid(_gold_popup_overlay):
 		_gold_popup_overlay.queue_free()
 	_gold_popup_overlay = null
+
+
+func _center_popup_panel(panel: Control, panel_size: Vector2) -> void:
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -panel_size.x / 2.0
+	panel.offset_right = panel_size.x / 2.0
+	panel.offset_top = -panel_size.y / 2.0
+	panel.offset_bottom = panel_size.y / 2.0
 
 
 func _on_gold_option_pressed(sku_key: String, btn: Button, status: Label) -> void:
@@ -941,7 +950,7 @@ func _show_stage_confirm(stg: int) -> void:
 
 	var panel := ButtonBuilder.create_panel(420, 200)
 	panel.name = "ConfirmPanel"
-	panel.position = Vector2((1280 - 420) / 2, (720 - 200) / 2)
+	_center_popup_panel(panel, Vector2(420, 200))
 	overlay.add_child(panel)
 
 	var title := ButtonBuilder.create_title_label(
@@ -1020,7 +1029,8 @@ func _free_window_popup() -> void:
 	if window == null:
 		window = get_viewport()
 	for overlay_name: String in [
-		"BuyConfirmOverlay", "UpgradeConfirmOverlay", "BuildingUpgradeConfirmOverlay"
+		"BuyConfirmOverlay", "UpgradeConfirmOverlay", "BuildingUpgradeConfirmOverlay",
+		"EquipPicker"
 	]:
 		var overlay := window.get_node_or_null(overlay_name)
 		if overlay != null:
@@ -1074,7 +1084,7 @@ func _show_no_lives() -> void:
 	var panel_size := Vector2(440, 260)
 	var panel := ButtonBuilder.create_panel(int(panel_size.x), int(panel_size.y))
 	panel.name = "NoLivesPanel"
-	panel.position = (Vector2(1280, 720) - panel_size) / 2.0
+	_center_popup_panel(panel, panel_size)
 	overlay.add_child(panel)
 
 	var label := ButtonBuilder.create_title_label(TranslationManager.t("no_lives_title"), 30)

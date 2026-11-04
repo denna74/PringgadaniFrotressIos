@@ -113,6 +113,12 @@ func _run() -> void:
 
 	var overlay: Node = page.get_window().get_node_or_null("BuyConfirmOverlay")
 	_check("buy button opens confirmation", overlay != null)
+	if overlay != null:
+		var overlay_control := overlay as Control
+		var popup_panel := overlay_control.get_child(0) as Control
+		_check("buy confirmation is centered",
+			(popup_panel.position + popup_panel.size / 2.0).is_equal_approx(
+				overlay_control.size / 2.0))
 	_check(
 		"confirmation shows item name",
 		overlay != null and overlay.find_child("ConfirmationTitle", true, false) != null

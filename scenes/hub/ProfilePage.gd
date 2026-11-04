@@ -37,6 +37,10 @@ func _ready() -> void:
 	TranslationManager.language_changed.connect(_on_language_changed)
 
 
+func _exit_tree() -> void:
+	close_popups()
+
+
 func _setup_ui() -> void:
 	_content = Control.new()
 	add_child(_content)
@@ -315,7 +319,10 @@ func _build_slot(slot: String, label: String) -> Panel:
 
 
 func _show_equip_picker(slot: String, slot_label: String) -> void:
-	var old_picker := find_child("EquipPicker", false, false)
+	var window := get_window()
+	if window == null:
+		window = get_viewport()
+	var old_picker := window.get_node_or_null("EquipPicker")
 	if old_picker != null:
 		old_picker.queue_free()
 
@@ -323,7 +330,7 @@ func _show_equip_picker(slot: String, slot_label: String) -> void:
 	picker.name = "EquipPicker"
 	picker.set_anchors_preset(Control.PRESET_FULL_RECT)
 	picker.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(picker)
+	window.add_child(picker)
 	_picker = picker
 	_picker_slot = slot
 	_picker_page = 0
@@ -335,8 +342,14 @@ func _show_equip_picker(slot: String, slot_label: String) -> void:
 
 	var panel := ButtonBuilder.create_panel(PICKER_WIDTH, PICKER_HEIGHT)
 	panel.name = "EquipPickerPanel"
-	panel.position = Vector2(16, 16)
-	panel.size = Vector2(PICKER_WIDTH, PICKER_HEIGHT)
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -PICKER_WIDTH / 2.0
+	panel.offset_right = PICKER_WIDTH / 2.0
+	panel.offset_top = -PICKER_HEIGHT / 2.0
+	panel.offset_bottom = PICKER_HEIGHT / 2.0
 	picker.add_child(panel)
 
 	var title := ButtonBuilder.create_title_label(slot_label, 24)
@@ -349,7 +362,7 @@ func _show_equip_picker(slot: String, slot_label: String) -> void:
 	var close := ButtonBuilder.create_small_button(TranslationManager.t("close"), 84, 30)
 	close.name = "PickerClose"
 	close.position = Vector2(PICKER_WIDTH - 98, 10)
-	close.pressed.connect(picker.queue_free)
+	close.pressed.connect(_close_equip_picker)
 	close.pressed.connect(ClickPlayer.play_select_4)
 	panel.add_child(close)
 
@@ -403,7 +416,7 @@ func _show_equip_picker(slot: String, slot_label: String) -> void:
 	unequip.name = "PickerUnequip"
 	unequip.position = Vector2(14, PICKER_HEIGHT - 46)
 	unequip.disabled = SaveManager.get_equipped(slot).is_empty()
-	unequip.pressed.connect(_unequip_from_picker.bind(slot, picker))
+	unequip.pressed.connect(_unequip_from_picker.bind(slot))
 	unequip.pressed.connect(ClickPlayer.play_select_3)
 	panel.add_child(unequip)
 	_show_picker_page()
@@ -436,7 +449,7 @@ func _show_picker_page() -> void:
 	var end := mini(start + PICKER_ITEMS_PER_PAGE, _picker_choices.size())
 	for index in range(start, end):
 		_picker_list.add_child(_build_choice_button(
-			_picker_slot, _picker, _picker_choices[index]
+			_picker_slot, _picker_choices[index]
 		))
 
 	var total_pages := maxi(
@@ -451,7 +464,7 @@ func _show_picker_page() -> void:
 	_picker_next.disabled = _picker_page >= total_pages - 1
 
 
-func _build_choice_button(slot: String, picker: Control, item: Dictionary) -> Button:
+func _build_choice_button(slot: String, item: Dictionary) -> Button:
 	var item_id := String(item["id"])
 	var btn := ButtonBuilder.create_small_button("", PICKER_WIDTH - 32, PICKER_ITEM_HEIGHT)
 	btn.name = "Choice_" + item_id
@@ -513,18 +526,36 @@ func _build_choice_button(slot: String, picker: Control, item: Dictionary) -> Bu
 	stats_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info.add_child(stats_label)
 
-	btn.pressed.connect(_choose_item.bind(slot, item_id, picker))
+	btn.pressed.connect(_choose_item.bind(slot, item_id))
 	btn.pressed.connect(ClickPlayer.play_select_3)
 	return btn
 
 
-func _choose_item(slot: String, item_id: String, picker: Control) -> void:
+func _choose_item(slot: String, item_id: String) -> void:
 	if SaveManager.equip_item(slot, item_id):
-		picker.queue_free()
+		_close_equip_picker()
 		_refresh()
 
 
-func _unequip_from_picker(slot: String, picker: Control) -> void:
+func _unequip_from_picker(slot: String) -> void:
 	if SaveManager.unequip_slot(slot):
-		picker.queue_free()
+		_close_equip_picker()
 		_refresh()
+
+
+func close_popups() -> void:
+	_close_equip_picker()
+
+
+func _close_equip_picker() -> void:
+	var window := get_window()
+	if window == null:
+		window = get_viewport()
+	var picker := window.get_node_or_null("EquipPicker")
+	if picker != null:
+		picker.queue_free()
+	_picker = null
+	_picker_list = null
+	_picker_prev = null
+	_picker_next = null
+	_picker_page_label = null

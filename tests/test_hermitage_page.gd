@@ -76,7 +76,10 @@ func _run() -> void:
 		w = root
 	var ov := w.get_node_or_null("UpgradeConfirmOverlay")
 	if ov != null and is_instance_valid(ov):
-		var panel := ov.get_child(0)
+		var overlay_control := ov as Control
+		var panel := overlay_control.get_child(0) as Control
+		_check("upgrade confirmation is centered",
+			(panel.position + panel.size / 2.0).is_equal_approx(overlay_control.size / 2.0))
 		if panel != null:
 			for ch in panel.get_children():
 				if ch is Button and ch.text.find("OK") >= 0:

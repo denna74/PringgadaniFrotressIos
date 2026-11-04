@@ -46,6 +46,8 @@ func _run() -> void:
 		return
 	var panel := overlay.get_child(0) as Control
 	_check("panel present", panel != null)
+	_check("life popup is centered",
+		(panel.get_global_rect().get_center() - overlay.size / 2.0).length() < 0.5)
 	var watch_btn := _find_button(panel, tm.t("instant_life_watch"))
 	var cancel_btn := _find_button(panel, tm.t("cancel"))
 	_check("watch button present", watch_btn != null)

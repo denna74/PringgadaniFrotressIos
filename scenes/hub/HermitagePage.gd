@@ -189,10 +189,15 @@ func _show_upgrade_confirm(id: String) -> void:
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	window.add_child(overlay)
 
-	var screen: Vector2 = window.size
 	var panel := ButtonBuilder.create_panel(POPUP_W, POPUP_H)
-	panel.position = Vector2(
-		(screen.x - POPUP_W) / 2.0, (screen.y - POPUP_H) / 2.0)
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -POPUP_W / 2.0
+	panel.offset_right = POPUP_W / 2.0
+	panel.offset_top = -POPUP_H / 2.0
+	panel.offset_bottom = POPUP_H / 2.0
 	overlay.add_child(panel)
 
 	var title := ButtonBuilder.create_title_label(
