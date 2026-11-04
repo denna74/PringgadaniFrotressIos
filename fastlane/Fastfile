@@ -57,8 +57,13 @@ platform :ios do
       xcargs: "CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='#{profile_name}'"
     )
 
+    ipa_path = "build/ios/PringgadaniFortress.ipa"
+    ipa_size = File.size(ipa_path)
+    max_ipa_size = 200_000_000
+    UI.user_error!("IPA is #{format('%.1f', ipa_size / 1_000_000.0)} MB; it must be smaller than 200 MB.") if ipa_size >= max_ipa_size
+
     pilot(
-      ipa: "build/ios/PringgadaniFortress.ipa",
+      ipa: ipa_path,
       api_key: api_key,
       skip_waiting_for_build_processing: true
     )
