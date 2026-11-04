@@ -84,11 +84,12 @@ func _check_hub() -> void:
 
 func _check_stage_confirmation(track: Control, tm: Node, language: String) -> void:
 	track._show_stage_confirm(3)
-	var overlay := track.get_node("ConfirmOverlay")
+	var overlay := track.get_window().get_node("ConfirmOverlay")
 	var panel := overlay.get_node("ConfirmPanel") as Control
 	_check(
 		"%s stage confirmation is centered" % language,
-		(panel.get_global_rect().get_center() - overlay.size / 2.0).length() < 0.5
+		(panel.get_global_rect().get_center()
+			- overlay.get_global_rect().get_center()).length() < 0.5
 	)
 	_check(
 		"%s stage confirmation title is translated" % language,

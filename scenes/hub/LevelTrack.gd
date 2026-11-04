@@ -373,7 +373,10 @@ func _update_instant_life_btn_state() -> void:
 
 
 func _show_life_popup() -> void:
-	if get_node_or_null("LifePopupOverlay") != null:
+	var window := get_window()
+	if window == null:
+		window = get_viewport()
+	if window.get_node_or_null("LifePopupOverlay") != null:
 		return
 	# Replace whatever popup is already open rather than stacking on top of it.
 	_close_all_popups()
@@ -381,9 +384,9 @@ func _show_life_popup() -> void:
 	var overlay := ColorRect.new()
 	overlay.name = "LifePopupOverlay"
 	overlay.color = Color(0, 0, 0, 0.6)
-	overlay.anchors_preset = Control.PRESET_FULL_RECT
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
+	window.add_child(overlay)
 
 	var panel := ButtonBuilder.create_panel(
 		int(LIFE_POPUP_SIZE.x), int(LIFE_POPUP_SIZE.y))
@@ -475,7 +478,10 @@ func _on_life_reward_failed(watch_btn: Button, status: Label) -> void:
 
 
 func _show_gold_popup() -> void:
-	if get_node_or_null("GoldPopupOverlay") != null:
+	var window := get_window()
+	if window == null:
+		window = get_viewport()
+	if window.get_node_or_null("GoldPopupOverlay") != null:
 		return
 	# Replace whatever popup is already open rather than stacking on top of it.
 	_close_all_popups()
@@ -483,9 +489,9 @@ func _show_gold_popup() -> void:
 	_gold_popup_overlay = ColorRect.new()
 	_gold_popup_overlay.name = "GoldPopupOverlay"
 	_gold_popup_overlay.color = Color(0, 0, 0, 0.6)
-	_gold_popup_overlay.anchors_preset = Control.PRESET_FULL_RECT
+	_gold_popup_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_gold_popup_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_gold_popup_overlay)
+	window.add_child(_gold_popup_overlay)
 
 	var panel := ButtonBuilder.create_panel(
 		int(GOLD_POPUP_SIZE.x), int(GOLD_POPUP_SIZE.y))
@@ -694,7 +700,10 @@ func _format_no_lives_refill(seconds_left: int) -> String:
 
 
 func _refresh_no_lives_popup() -> void:
-	var overlay := get_node_or_null("NoLivesOverlay")
+	var window := get_window()
+	if window == null:
+		window = get_viewport()
+	var overlay := window.get_node_or_null("NoLivesOverlay")
 	if overlay == null:
 		return
 	var title := overlay.get_node_or_null("NoLivesPanel/NoLivesTitle") as Label
@@ -938,15 +947,18 @@ func _on_stage_selected(stg: int) -> void:
 
 
 func _show_stage_confirm(stg: int) -> void:
-	if get_node_or_null("ConfirmOverlay") != null:
+	var window := get_window()
+	if window == null:
+		window = get_viewport()
+	if window.get_node_or_null("ConfirmOverlay") != null:
 		return
 
 	var overlay := ColorRect.new()
 	overlay.name = "ConfirmOverlay"
 	overlay.color = Color(0, 0, 0, 0.6)
-	overlay.anchors_preset = Control.PRESET_FULL_RECT
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
+	window.add_child(overlay)
 
 	var panel := ButtonBuilder.create_panel(420, 200)
 	panel.name = "ConfirmPanel"
@@ -1007,7 +1019,10 @@ func _close_all_popups() -> void:
 	for overlay_name: String in [
 		"LifePopupOverlay", "GoldPopupOverlay", "ConfirmOverlay", "NoLivesOverlay"
 	]:
-		var overlay := get_node_or_null(overlay_name)
+		var window := get_window()
+		if window == null:
+			window = get_viewport()
+		var overlay := window.get_node_or_null(overlay_name)
 		if overlay != null:
 			overlay.queue_free()
 	_hide_gold_popup()
@@ -1030,7 +1045,8 @@ func _free_window_popup() -> void:
 		window = get_viewport()
 	for overlay_name: String in [
 		"BuyConfirmOverlay", "UpgradeConfirmOverlay", "BuildingUpgradeConfirmOverlay",
-		"EquipPicker"
+		"EquipPicker", "LifePopupOverlay", "GoldPopupOverlay", "ConfirmOverlay",
+		"NoLivesOverlay"
 	]:
 		var overlay := window.get_node_or_null(overlay_name)
 		if overlay != null:
@@ -1076,10 +1092,13 @@ func _set_menu_active(id: String) -> void:
 func _show_no_lives() -> void:
 	var overlay := ColorRect.new()
 	overlay.color = Color(0, 0, 0, 0.6)
-	overlay.anchors_preset = Control.PRESET_FULL_RECT
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	overlay.name = "NoLivesOverlay"
-	add_child(overlay)
+	var window := get_window()
+	if window == null:
+		window = get_viewport()
+	window.add_child(overlay)
 
 	var panel_size := Vector2(440, 260)
 	var panel := ButtonBuilder.create_panel(int(panel_size.x), int(panel_size.y))

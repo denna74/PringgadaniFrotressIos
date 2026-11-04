@@ -39,7 +39,8 @@ func _run() -> void:
 	# Structure
 	track._show_life_popup()
 	await process_frame
-	var overlay := track.get_node_or_null("LifePopupOverlay") as ColorRect
+	var window := track.get_window()
+	var overlay := window.get_node_or_null("LifePopupOverlay") as ColorRect
 	_check("overlay present", overlay != null)
 	if overlay == null:
 		quit(1)
@@ -47,7 +48,7 @@ func _run() -> void:
 	var panel := overlay.get_child(0) as Control
 	_check("panel present", panel != null)
 	_check("life popup is centered",
-		(panel.get_global_rect().get_center() - overlay.size / 2.0).length() < 0.5)
+		(panel.get_global_rect().get_center() - overlay.get_global_rect().get_center()).length() < 0.5)
 	var watch_btn := _find_button(panel, tm.t("instant_life_watch"))
 	var cancel_btn := _find_button(panel, tm.t("cancel"))
 	_check("watch button present", watch_btn != null)
@@ -59,7 +60,7 @@ func _run() -> void:
 	track._show_life_popup()
 	await process_frame
 	var overlays := 0
-	for child in track.get_children():
+	for child in window.get_children():
 		if child.name == "LifePopupOverlay":
 			overlays += 1
 	_check("second open is a no-op", overlays == 1)
@@ -70,7 +71,7 @@ func _run() -> void:
 	sm.lives = clampi(sm.lives, 0, sm.max_lives - 1)
 	track._show_life_popup()
 	await process_frame
-	overlay = track.get_node_or_null("LifePopupOverlay") as ColorRect
+	overlay = window.get_node_or_null("LifePopupOverlay") as ColorRect
 	panel = overlay.get_child(0) as Control
 	watch_btn = _find_button(panel, tm.t("instant_life_watch"))
 	status = panel.get_node_or_null("AdStatus") as Label
@@ -94,13 +95,13 @@ func _run() -> void:
 	_check("exactly one life granted", sm.lives == lives_before + 1)
 	_check("never above max", sm.lives <= sm.max_lives)
 	_check("popup closed after earn",
-		track.get_node_or_null("LifePopupOverlay") == null)
+		window.get_node_or_null("LifePopupOverlay") == null)
 
 	# Earned at full lives grants nothing extra
 	sm.lives = sm.max_lives
 	track._show_life_popup()
 	await process_frame
-	overlay = track.get_node_or_null("LifePopupOverlay") as ColorRect
+	overlay = window.get_node_or_null("LifePopupOverlay") as ColorRect
 	panel = overlay.get_child(0) as Control
 	watch_btn = _find_button(panel, tm.t("instant_life_watch"))
 	status = panel.get_node_or_null("AdStatus") as Label
@@ -112,20 +113,20 @@ func _run() -> void:
 	# Cancel path
 	track._show_life_popup()
 	await process_frame
-	overlay = track.get_node_or_null("LifePopupOverlay") as ColorRect
+	overlay = window.get_node_or_null("LifePopupOverlay") as ColorRect
 	panel = overlay.get_child(0) as Control
 	cancel_btn = _find_button(panel, tm.t("cancel"))
 	cancel_btn.pressed.emit()
 	await process_frame
 	_check("popup closed after cancel",
-		track.get_node_or_null("LifePopupOverlay") == null)
+		window.get_node_or_null("LifePopupOverlay") == null)
 
 	# Button wiring: the top-bar button opens the popup
 	var life_btn := track.get_node("TopBar/InstantLifeBtn") as TextureButton
 	life_btn.pressed.emit()
 	await process_frame
 	_check("top bar button opens popup",
-		track.get_node_or_null("LifePopupOverlay") != null)
+		window.get_node_or_null("LifePopupOverlay") != null)
 
 	sm.lives = sm.max_lives
 	sm.save_game()

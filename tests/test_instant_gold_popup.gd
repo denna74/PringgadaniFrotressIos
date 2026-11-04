@@ -34,14 +34,15 @@ func _run() -> void:
 
 	track._show_gold_popup()
 	await process_frame
-	var overlay := track.get_node_or_null("GoldPopupOverlay") as ColorRect
+	var window := track.get_window()
+	var overlay := window.get_node_or_null("GoldPopupOverlay") as ColorRect
 	_check("overlay present", overlay != null)
 	if overlay == null:
 		quit(1)
 		return
 	var panel := overlay.get_child(0) as Control
 	_check("gold popup is centered",
-		(panel.get_global_rect().get_center() - overlay.size / 2.0).length() < 0.5)
+		(panel.get_global_rect().get_center() - overlay.get_global_rect().get_center()).length() < 0.5)
 	var opt0 := panel.get_node_or_null("GoldOption0") as Button
 	var opt1 := panel.get_node_or_null("GoldOption1") as Button
 	var opt2 := panel.get_node_or_null("GoldOption2") as Button
@@ -82,7 +83,7 @@ func _run() -> void:
 	_check("gold granted", sm.gold == gold_before + 80000)
 	_check("token marked", sm.is_purchase_processed("tok_gold_test"))
 	_check("popup closed after success",
-		track.get_node_or_null("GoldPopupOverlay") == null)
+		window.get_node_or_null("GoldPopupOverlay") == null)
 
 	# Reconcile: unprocessed pending token grants
 	track._show_gold_popup()
@@ -109,7 +110,7 @@ func _run() -> void:
 	# Cancel path
 	track._show_gold_popup()
 	await process_frame
-	overlay = track.get_node_or_null("GoldPopupOverlay") as ColorRect
+	overlay = window.get_node_or_null("GoldPopupOverlay") as ColorRect
 	panel = overlay.get_child(0) as Control
 	var cancel_btn := panel.get_node_or_null("CancelBtn") as Button
 	_check("cancel button present", cancel_btn != null)
@@ -117,14 +118,14 @@ func _run() -> void:
 		cancel_btn.pressed.emit()
 		await process_frame
 	_check("popup closed after cancel",
-		track.get_node_or_null("GoldPopupOverlay") == null)
+		window.get_node_or_null("GoldPopupOverlay") == null)
 
 	# Button wiring
 	var gold_btn := track.get_node("TopBar/InstantGoldBtn") as TextureButton
 	gold_btn.pressed.emit()
 	await process_frame
 	_check("top bar button opens popup",
-		track.get_node_or_null("GoldPopupOverlay") != null)
+		window.get_node_or_null("GoldPopupOverlay") != null)
 
 	# Cleanup test residue
 	sm.processed_purchases.erase("tok_gold_test")
