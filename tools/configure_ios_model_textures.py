@@ -4,6 +4,9 @@ from pathlib import Path
 
 
 MODEL_ROOT = Path("assets/models")
+STAND_TEXTURE = MODEL_ROOT / "gatotkaca_stand_texture_0.png"
+STANDARD_SIZE_LIMIT = 512
+STAND_SIZE_LIMIT = 1024
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 JPEG_SOF_MARKERS = {
     0xC0,
@@ -66,14 +69,18 @@ def configure_import(import_path: Path) -> bool:
 
     source_path = import_path.with_suffix("")
     dimensions = image_dimensions(source_path)
-    if dimensions is None or max(dimensions) <= 1024:
+    if dimensions is None:
+        return False
+
+    size_limit = STAND_SIZE_LIMIT if source_path == STAND_TEXTURE else STANDARD_SIZE_LIMIT
+    if max(dimensions) <= size_limit:
         return False
 
     updated = re.sub(r'"vram_texture":\s*false', '"vram_texture": true', contents, count=1)
     updated = re.sub(r"^compress/mode=\d+$", "compress/mode=2", updated, count=1, flags=re.MULTILINE)
     updated = re.sub(
         r"^process/size_limit=\d+$",
-        "process/size_limit=1024",
+        f"process/size_limit={size_limit}",
         updated,
         count=1,
         flags=re.MULTILINE,
@@ -86,4 +93,4 @@ def configure_import(import_path: Path) -> bool:
 
 if __name__ == "__main__":
     changed = sum(configure_import(path) for path in MODEL_ROOT.rglob("*.import"))
-    print(f"Configured {changed} model texture import(s) for 1024px mobile textures.")
+    print(f"Configured {changed} oversized model texture import(s) for mobile caps.")
