@@ -725,9 +725,11 @@ func _tick_pending_enemy_attack(enemy: Node3D, delta: float) -> void:
 			str(pending.get("animation_name", ""))
 		)
 
-	var target: Node3D = pending.get("target")
-	if target == null or not is_instance_valid(target) or not target.is_inside_tree() \
-			or not target.has_method("take_damage"):
+	var target_ref: Variant = pending.get("target")
+	if not is_instance_valid(target_ref):
+		return
+	var target := target_ref as Node3D
+	if target == null or not target.is_inside_tree() or not target.has_method("take_damage"):
 		return
 	if target.has_method("is_alive") and not target.is_alive():
 		return

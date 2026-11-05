@@ -31,6 +31,7 @@ func _run() -> void:
 	_check_boss_stamina_curves()
 	_check_kalapracona_attack_timing()
 	_check_melee_attack_timing()
+	_check_freed_pending_attack_target()
 	await _check_boma_projectiles()
 	await _check_special_requires_boss()
 	await _check_aswatama_earthquake()
@@ -342,6 +343,20 @@ func _check_kalapracona_attack_timing() -> void:
 	target.free()
 	if not is_equal_approx(_inv._enemy_standoff({"is_boss": false}), 2.0):
 		_fail("regular infantry melee range changed when extending boss reach")
+
+
+func _check_freed_pending_attack_target() -> void:
+	var data: Dictionary = {"is_boss": false, "type": "infantry", "attack": 12.0}
+	var enemy := _make_enemy(data, "enemy_infantry")
+	var target := _make_target(Vector3(0.0, 0.0, 1.5))
+	_inv._king_ref = target
+	_inv._try_enemy_attack(enemy, data, 0.016)
+	var hit_delay: float = float(
+		enemy.get_meta("pending_enemy_attack", {}).get("timer", 0.0)
+	)
+	target.free()
+	_inv._tick_pending_enemy_attack(enemy, hit_delay)
+	_inv._king_ref = null
 
 
 func _last_arrow() -> Node3D:
