@@ -1044,6 +1044,9 @@ func _resolve_boss_earthquake(enemy: Node3D, enemy_data: Dictionary) -> void:
 	var center: Vector3 = enemy.global_position
 	var effect := EARTHQUAKE_EFFECT_SCRIPT.new() as Node3D
 	effect.name = "BossEarthquakeEffect"
+	var is_karna: bool = (str(enemy_data.get("boss_id", "")) == BossRegistry.KARNA)
+	if is_karna:
+		effect.set("enhanced", true)
 	var effect_parent: Node = get_parent() if get_parent() != null else self
 	effect_parent.add_child(effect)
 	effect.global_position = center + Vector3(0.0, 0.1, 0.0)
