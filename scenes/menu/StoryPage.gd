@@ -45,7 +45,8 @@ const CONTENT_SIZE := Vector2(610, 517)
 const CONTENT_WIDTH := 560.0
 const PAGE_LABEL_POS := Vector2(300, 640)
 const PAGE_LABEL_SIZE := Vector2(80, 40)
-const BUTTON_TEXT_COLOR := Color(0.95, 0.85, 0.65, 1)
+const BUTTON_TEXT_COLOR := Color.DARK_BLUE
+const CLOSE_BUTTON_TEXT_COLOR := Color.DARK_RED
 const MAIN_MENU_PATH := "res://scenes/menu/MainMenu.tscn"
 
 
@@ -94,7 +95,7 @@ func _build_image_panel() -> void:
 	_story_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(_story_image)
 
-	_prev_btn = _make_button("PrevButton", "prev", PREV_POS)
+	_prev_btn = _make_button("PrevButton", "prev", PREV_POS, BUTTON_TEXT_COLOR)
 	_prev_btn.pressed.connect(_on_prev_pressed)
 	panel.add_child(_prev_btn)
 
@@ -106,7 +107,7 @@ func _build_story_panel() -> void:
 	panel.size = IMAGE_PANEL_SIZE
 	add_child(panel)
 
-	_close_btn = _make_button("CloseButton", "close", CLOSE_POS, true)
+	_close_btn = _make_button("CloseButton", "close", CLOSE_POS, CLOSE_BUTTON_TEXT_COLOR, true)
 	_close_btn.pressed.connect(_on_close_pressed)
 	panel.add_child(_close_btn)
 
@@ -135,20 +136,20 @@ func _build_story_panel() -> void:
 	_page_label.add_theme_font_size_override("font_size", 18)
 	panel.add_child(_page_label)
 
-	_next_btn = _make_button("NextButton", "next", NEXT_POS)
+	_next_btn = _make_button("NextButton", "next", NEXT_POS, BUTTON_TEXT_COLOR)
 	_next_btn.pressed.connect(_on_next_pressed)
 	panel.add_child(_next_btn)
 
 
 func _make_button(
-	node_name: String, label_key: String, pos: Vector2, is_cancel: bool = false
+	node_name: String, label_key: String, pos: Vector2, color: Color, is_cancel: bool = false
 ) -> Button:
 	var btn := Button.new()
 	btn.name = node_name
 	btn.text = TranslationManager.t(label_key).to_upper()
 	btn.position = pos
 	btn.size = BUTTON_SIZE
-	btn.add_theme_color_override("font_color", BUTTON_TEXT_COLOR)
+	btn.add_theme_color_override("font_color", color)
 	ButtonBuilder.apply_long_button_art(btn)
 	ButtonBuilder.make_hover_inert(btn)
 	if is_cancel:

@@ -287,6 +287,7 @@ func _setup_top_bar() -> void:
 	)
 	_apply_long_button_art(_main_menu_btn)
 	_main_menu_btn.add_theme_font_size_override("font_size", 20)
+	_main_menu_btn.add_theme_color_override("font_color", Color.DARK_RED)
 	_main_menu_btn.position = Vector2(
 		1010, 20
 	)

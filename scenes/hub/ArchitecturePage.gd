@@ -1,7 +1,7 @@
 extends Control
 
 const ROW_WIDTH := 430
-const ROW_HEIGHT := 250
+const ROW_HEIGHT := 200
 const ITEMS_PER_PAGE := 2
 const PAGINATION_Y := 570
 const PAGINATION_BUTTON_SIZE := Vector2(140, 46)
@@ -159,7 +159,7 @@ func _build_row(id: String) -> Panel:
 		TranslationManager.t(BuildingUpgradeData.NAME_KEYS[id]),
 		TranslationManager.t("skill_level").replace("{n}", "%d") % level,
 	]
-	name_lbl.add_theme_font_size_override("font_size", 19)
+	name_lbl.add_theme_font_size_override("font_size", 20)
 	name_lbl.add_theme_color_override("font_color", Color(0.95, 0.85, 0.65))
 	col.add_child(name_lbl)
 
@@ -167,13 +167,13 @@ func _build_row(id: String) -> Panel:
 	col.add_child(track)
 	_tracks[id] = track
 
-	var effect := ButtonBuilder.create_body_label(_effect_text(id), 14)
+	var effect := ButtonBuilder.create_body_label(_effect_text(id), 16)
 	effect.name = "EffectLabel"
 	effect.add_theme_color_override("font_color", Color.CHARTREUSE)
 	effect.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(effect)
 
-	var details := ButtonBuilder.create_body_label(_details_text(id, level), 13)
+	var details := ButtonBuilder.create_body_label(_details_text(id, level), 16)
 	details.name = "DetailsLabel"
 	details.add_theme_color_override("font_color", Color.CHARTREUSE)
 	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

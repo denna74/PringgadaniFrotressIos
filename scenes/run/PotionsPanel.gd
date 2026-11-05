@@ -12,7 +12,7 @@ var _cells: Dictionary = {}
 const BUTTON_POS := Vector2(1154, 360)
 const BUTTON_SIZE := Vector2(110, 110)
 const POPUP_SIZE := Vector2(1280, 720)
-const PANEL_SIZE := Vector2(550, 620)
+const PANEL_SIZE := Vector2(500, 620)
 
 
 func setup(king: Node3D) -> void:

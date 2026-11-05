@@ -351,6 +351,7 @@ func _build_top_bar() -> void:
 	_pause_button.add_theme_stylebox_override("focus", style)
 	_pause_button.name = "PauseButton"
 	_pause_button.add_theme_font_size_override("font_size", 36)
+	_pause_button.add_theme_color_override("font_color", Color.DARK_RED)
 	_pause_button.position = TOP_PAUSE_POSITION
 	_pause_button.disabled = true
 	ButtonBuilder.make_hover_inert(_pause_button)

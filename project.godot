@@ -77,5 +77,5 @@ rendering/scaling_3d/scale=1.0
 
 auto_initialize=true
 test_mode=false
-ios/game_id=""
+ios/game_id="800425317"
 ios/placements/rewarded="PF_Rewarded_iOS"
