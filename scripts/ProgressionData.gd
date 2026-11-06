@@ -202,27 +202,27 @@ static func enemy_defense(stage: int, _king_level: int = 1) -> float:
 static func boss_stats(boss_id: String, stage: int) -> Dictionary:
 	var endpoints: Dictionary = {
 		BossRegistry.KALAPRACONA: {
-			"hp": [500.0, 3600.0],
-			"attack": [80.0, 240.0],
+			"hp": [1500.0, 4600.0],
+			"attack": [180.0, 340.0],
 			"defense": [12.0, 36.0],
 		},
 		BossRegistry.BOMA: {
-			"hp": [520.0, 4500.0],
-			"attack": [100.0, 360.0],
+			"hp": [1520.0, 5500.0],
+			"attack": [200.0, 460.0],
 			"defense": [20.0, 50.0],
 			"mana": [32.0, 330.0],
 			"stamina": [45.0, 180.0],
 		},
 		BossRegistry.ASWATAMA: {
-			"hp": [600.0, 5500.0],
-			"attack": [90.0, 300.0],
+			"hp": [1600.0, 6500.0],
+			"attack": [190.0, 400.0],
 			"defense": [16.0, 42.0],
 			"mana": [30.0, 310.0],
 			"stamina": [50.0, 200.0],
 		},
 		BossRegistry.KARNA: {
-			"hp": [800.0, 8500.0],
-			"attack": [120.0, 400.0],
+			"hp": [1800.0, 9500.0],
+			"attack": [220.0, 500.0],
 			"defense": [30.0, 80.0],
 			"mana": [35.0, 350.0],
 			"stamina": [75.0, 250.0],

@@ -3,15 +3,15 @@ extends Control
 
 const STORY_KEYS := [
 	"story_page_1", "story_page_2", "story_page_3", "story_page_4",
-	"story_page_5", "story_page_6", "story_page_7", "story_page_8",
+	"story_page_5", "story_page_6", "story_page_7", "story_page_8", "story_page_9",
 ]
 
 const STORY_HIGHLIGHT_NAMES := {
 	0: "GATOTKACA",
-	3: "KALA PRACONA",
-	4: "DURYUDANA",
-	5: "ASWATAMA",
-	6: "KARNA",
+	4: "KALA PRACONA",
+	5: "DURYUDANA",
+	6: "ASWATAMA",
+	7: "KARNA",
 }
 
 const STORY_IMAGE_PATHS := [
@@ -23,13 +23,21 @@ const STORY_IMAGE_PATHS := [
 	"res://assets/sprites/story_pages/6.png",
 	"res://assets/sprites/story_pages/7.png",
 	"res://assets/sprites/story_pages/8.png",
+	"res://assets/sprites/story_pages/9.png",
 ]
 
 const STORY_BUILDINGS := [
 	{"id": "pendopo", "icon": "res://assets/buttons/buildings_icons/icon_pendopo.png"},
+	{"id": "white_flag", "icon": "res://assets/buttons/buildings_icons/white_flag.png"},
 	{"id": "tower", "icon": "res://assets/buttons/buildings_icons/icon_tower.png"},
 	{"id": "gold_mine", "icon": "res://assets/buttons/buildings_icons/icon_gold_mine.png"},
 	{"id": "barrack", "icon": "res://assets/buttons/buildings_icons/icon_barrack.png"},
+]
+
+const BUTTON_ICONS := [
+	{"id": "barrack", "icon": "res://assets/buttons/buildings_icons/icon_barrack.png"},
+	{"id": "go_to_pendopo", "icon": "res://assets/buttons/pendopo.png"},
+	{"id": "go_to_gatotkaca", "icon": "res://assets/buttons/group.png"},
 ]
 
 const IMAGE_PANEL_SIZE := Vector2(640, 720)
@@ -196,6 +204,11 @@ func _render_content() -> void:
 			_add_building_row(building)
 		return
 
+	if _current_page == 2:
+		_add_story_text(text, "StoryText")
+		for building: Dictionary in BUTTON_ICONS:
+			_add_command_button_row(building)
+		return
 	_add_story_text(text, "StoryText")
 
 
@@ -279,6 +292,35 @@ func _add_building_row(building: Dictionary) -> void:
 	description.add_theme_font_size_override("font_size", 16)
 	text_box.add_child(description)
 
+func _add_command_button_row(button: Dictionary) -> void:
+	var button_id: String = button["id"]
+	var row := HBoxContainer.new()
+	row.name = "Button_%s" % button_id.to_pascal_case()
+	row.custom_minimum_size.y = 76
+	row.add_theme_constant_override("separation", 12)
+	_content_box.add_child(row)
+
+	var icon := TextureRect.new()
+	icon.name = "Icon"
+	icon.custom_minimum_size = Vector2(64, 68)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = load(button["icon"]) as Texture2D
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+
+	var text_box := VBoxContainer.new()
+	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_box.add_theme_constant_override("separation", 2)
+	row.add_child(text_box)
+
+	var description := Label.new()
+	description.text = TranslationManager.t("story_soldiers_%s" % button_id)
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	description.add_theme_color_override("font_color", Color.WHITE)
+	description.add_theme_font_size_override("font_size", 20)
+	text_box.add_child(description)
 
 func _on_language_changed(_lang: String) -> void:
 	_show_page()

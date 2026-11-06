@@ -93,7 +93,7 @@ func _run() -> void:
 		page.call("_show_page")
 		await process_frame
 		var highlight: RichTextLabel = content_box.get_child(0) as RichTextLabel
-		var expected_name: String = ["KALA PRACONA", "BISMA", "ASWATAMA", "KARNA"][page_index - 3]
+		var expected_name: String = ["KALA PRACONA", "DURYUDANA", "ASWATAMA", "KARNA"][page_index - 3]
 		_check(
 			"page %d starts with highlighted name" % (page_index + 1),
 			highlight != null and highlight.get_parsed_text().begins_with(expected_name)
