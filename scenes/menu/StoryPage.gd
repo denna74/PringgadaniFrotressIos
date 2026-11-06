@@ -48,7 +48,7 @@ const BUTTON_SIZE := Vector2(220, 60)
 const PREV_POS := Vector2(10, 630)
 const NEXT_POS := Vector2(400, 630)
 const CLOSE_POS := Vector2(410, 10)
-const CONTENT_POS := Vector2(10, 103)
+const CONTENT_POS := Vector2(10, 93)
 const CONTENT_SIZE := Vector2(610, 517)
 const CONTENT_WIDTH := 560.0
 const PAGE_LABEL_POS := Vector2(300, 640)
@@ -124,7 +124,7 @@ func _build_story_panel() -> void:
 	_content_scroll.position = CONTENT_POS
 	_content_scroll.size = CONTENT_SIZE
 	_content_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_content_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_content_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	panel.add_child(_content_scroll)
 
 	_content_box = VBoxContainer.new()
@@ -141,7 +141,7 @@ func _build_story_panel() -> void:
 	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_page_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_page_label.add_theme_color_override("font_color", Color.WHITE)
-	_page_label.add_theme_font_size_override("font_size", 18)
+	_page_label.add_theme_font_size_override("font_size", 22)
 	panel.add_child(_page_label)
 
 	_next_btn = _make_button("NextButton", "next", NEXT_POS, BUTTON_TEXT_COLOR)
@@ -224,14 +224,14 @@ func _add_story_text(text: String, node_name: String) -> void:
 		rich_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		rich_label.custom_minimum_size = Vector2(CONTENT_WIDTH, 0)
 		rich_label.add_theme_color_override("default_color", Color.WHITE)
+		rich_label.push_font_size(22)
 		rich_label.push_color(Color.YELLOW)
-		rich_label.push_bold()
 		rich_label.add_text(highlight_name)
 		rich_label.pop()
 		rich_label.pop()
 		rich_label.add_text(text.substr(highlight_name.length()))
 		var is_last_page := _current_page == STORY_KEYS.size() - 1
-		rich_label.add_theme_font_size_override("normal_font_size", 24 if is_last_page else 20)
+		rich_label.add_theme_font_size_override("normal_font_size", 24 if is_last_page else 22)
 		if is_last_page:
 			rich_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			rich_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -247,7 +247,7 @@ func _add_story_text(text: String, node_name: String) -> void:
 	label.custom_minimum_size = Vector2(CONTENT_WIDTH, 0)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	var is_last_page := _current_page == STORY_KEYS.size() - 1
-	label.add_theme_font_size_override("font_size", 24 if is_last_page else 20)
+	label.add_theme_font_size_override("font_size", 28 if is_last_page else 22)
 	if is_last_page:
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -281,7 +281,7 @@ func _add_building_row(building: Dictionary) -> void:
 	title.text = TranslationManager.t("story_building_%s_title" % building_id)
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_color_override("font_color", Color.WHITE)
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", 24)
 	text_box.add_child(title)
 
 	var description := Label.new()
@@ -289,7 +289,7 @@ func _add_building_row(building: Dictionary) -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	description.add_theme_color_override("font_color", Color.WHITE)
-	description.add_theme_font_size_override("font_size", 16)
+	description.add_theme_font_size_override("font_size", 22)
 	text_box.add_child(description)
 
 func _add_command_button_row(button: Dictionary) -> void:
@@ -319,7 +319,7 @@ func _add_command_button_row(button: Dictionary) -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	description.add_theme_color_override("font_color", Color.WHITE)
-	description.add_theme_font_size_override("font_size", 20)
+	description.add_theme_font_size_override("font_size", 22)
 	text_box.add_child(description)
 
 func _on_language_changed(_lang: String) -> void:
