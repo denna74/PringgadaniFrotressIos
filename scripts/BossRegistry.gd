@@ -33,6 +33,7 @@ const BOSSES: Dictionary = {
 		# Boma's signature: a red arrow dragging a red slash shadow behind it.
 		"arrow_style": "boma_red",
 		"special": "power_attack",
+		"specials": ["dash"],
 		"role": "elite",
 	},
 	ASWATAMA: {

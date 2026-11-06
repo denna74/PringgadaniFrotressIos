@@ -38,6 +38,7 @@ func _run() -> void:
 	await _check_karna_earthquake()
 	_check_dash_only_in_range()
 	_check_dash_movement()
+	_check_boma_dash()
 	_check_ai_triggers_dash()
 	_check_cooldowns_gate_special()
 	_check_pooled_state_is_reset()
@@ -186,9 +187,13 @@ func _check_boss_attack_slash_appearance() -> void:
 
 
 func _check_boss_stamina_curves() -> void:
-	for id in [BossRegistry.ASWATAMA, BossRegistry.KARNA]:
-		var start: float = 50.0 if id == BossRegistry.ASWATAMA else 75.0
-		var finish: float = 200.0 if id == BossRegistry.ASWATAMA else 250.0
+	for id in [BossRegistry.BOMA, BossRegistry.ASWATAMA, BossRegistry.KARNA]:
+		var start: float = 45.0 if id == BossRegistry.BOMA else (
+			50.0 if id == BossRegistry.ASWATAMA else 75.0
+		)
+		var finish: float = 180.0 if id == BossRegistry.BOMA else (
+			200.0 if id == BossRegistry.ASWATAMA else 250.0
+		)
 		var data_start: Dictionary = EnemySpawner.spawn_boss(1, 1, 1, id)
 		var data_finish: Dictionary = EnemySpawner.spawn_boss(1, 250, 1, id)
 		if not is_equal_approx(float(data_start["stamina_max"]), start):
@@ -197,9 +202,9 @@ func _check_boss_stamina_curves() -> void:
 			_fail("%s stage 250 stamina was %s, expected %s" % [id, data_finish["stamina_max"], finish])
 	var boma_start: Dictionary = EnemySpawner.spawn_boss(1, 1, 1, BossRegistry.BOMA)
 	var boma_finish: Dictionary = EnemySpawner.spawn_boss(1, 250, 1, BossRegistry.BOMA)
-	if not is_equal_approx(float(boma_start["mana_max"]), 25.0) \
-			or not is_equal_approx(float(boma_finish["mana_max"]), 200.0):
-		_fail("Boma MP should scale from 25 at stage 1 to 200 at stage 250")
+	if not is_equal_approx(float(boma_start["mana_max"]), 32.0) \
+			or not is_equal_approx(float(boma_finish["mana_max"]), 330.0):
+		_fail("Boma MP should scale from 32 at stage 1 to 330 at stage 250")
 	var karna_start: Dictionary = EnemySpawner.spawn_boss(1, 1, 1, BossRegistry.KARNA)
 	var karna_finish: Dictionary = EnemySpawner.spawn_boss(1, 250, 1, BossRegistry.KARNA)
 	if not is_equal_approx(float(karna_start["mana_max"]), 35.0) \
@@ -250,6 +255,9 @@ func _check_boma_projectiles() -> void:
 	normal.call("_release")
 	await process_frame
 
+	var test_camera := Camera3D.new()
+	root.add_child(test_camera)
+	test_camera.current = true
 	enemy.set_meta("attack_cooldown", 0.0)
 	enemy.set_meta("boss_power_attack_cd", 0.0)
 	_inv._try_enemy_attack(enemy, data, 0.016)
@@ -275,12 +283,15 @@ func _check_boma_projectiles() -> void:
 		_fail("Boma's power shot should use a red arrow")
 	if not powered.call("has_power_aura"):
 		_fail("Boma's power shot has no aura trail")
+	if not _is_sfx_playing("power_attack"):
+		_fail("Boma's power arrow did not play its launch SFX")
 	if not is_equal_approx(float(enemy.get_meta("boss_mana")), 20.0):
 		_fail("Boma's power arrow should spend 20% of its MP")
 	if powered.has_method("get_arrow_style") \
 			and powered.get_parent() == null:
 		_fail("Boma's power arrow should remain in the gameplay tree while flying")
 	powered.call("_release")
+	test_camera.free()
 
 
 func _check_melee_attack_timing() -> void:
@@ -432,6 +443,16 @@ func _check_karna_berserk() -> void:
 		_fail("Karna's berserk did not spend 50% of its MP")
 	if karna.get_node_or_null("BossBerserkAura") == null:
 		_fail("Karna did not show its berserk aura")
+	else:
+		var aura: Node = karna.get_node("BossBerserkAura")
+		var frames: Array = aura.get("_frames")
+		if frames.size() != 4:
+			_fail("Karna's berserk aura did not load four frames")
+		else:
+			for texture: Texture2D in frames:
+				if not texture.resource_path.ends_with("_red.png"):
+					_fail("Karna's berserk aura should use red frames")
+					break
 	var anim_player: AnimationPlayer = ModelLoader.find_animation_player(karna)
 	if anim_player == null or anim_player.current_animation != "boss/berserk":
 		_fail("Karna did not play its berserk animation")
@@ -448,6 +469,7 @@ func _check_karna_earthquake() -> void:
 	}
 	var karna := _make_enemy(data, "karna")
 	_inv._king_ref = _make_target(Vector3(2.0, 0.0, 0.0))
+	_stop_sfx_playback()
 	_inv._try_boss_special(karna, data)
 	if karna.get_meta("boss_quake_cd", 0.0) <= 0.0:
 		_fail("Karna did not trigger earthquake inside close range")
@@ -464,9 +486,11 @@ func _check_karna_earthquake() -> void:
 		_fail("Karna's earthquake is not timed to 50% of its animation")
 	if float(karna.get_meta("attack_cooldown", 0.0)) < quake_length + 0.99:
 		_fail("Karna followed earthquake with a melee attack without a recovery delay")
-	if not _is_sfx_playing("earth_quake_skill"):
-		_fail("Karna's earthquake did not play the Gatotkaca earthquake SFX")
+	if _is_sfx_playing("earth_quake_skill"):
+		_fail("Karna's earthquake SFX started before the ground effect")
 	_inv._tick_pending_boss_earthquake(karna, quake_hit_delay)
+	if not _is_sfx_playing("earth_quake_skill"):
+		_fail("Karna's earthquake SFX did not start with the ground effect")
 	if (_inv._king_ref as Damageable).hits != 1:
 		_fail("Karna's earthquake did not damage the nearby king")
 	if not is_equal_approx(float(karna.get_meta("boss_mana")), 26.25):
@@ -490,13 +514,14 @@ func _check_aswatama_earthquake() -> void:
 	}
 	var aswatama := _make_enemy(data, "aswatama")
 	_inv._king_ref = _make_target(Vector3(2.0, 0.0, 0.0))
+	_stop_sfx_playback()
 	_inv._try_boss_special(aswatama, data)
 	if aswatama.get_meta("boss_quake_cd", 0.0) <= 0.0:
 		_fail("Aswatama did not trigger earthquake inside close range")
 	if not is_equal_approx(float(aswatama.get_meta("boss_mana")), 22.5):
 		_fail("Aswatama's earthquake did not spend 25% of its MP")
-	if not _is_sfx_playing("earth_quake_skill"):
-		_fail("Aswatama's earthquake did not play the Gatotkaca earthquake SFX")
+	if _is_sfx_playing("earth_quake_skill"):
+		_fail("Aswatama's earthquake SFX started before the ground effect")
 	var anim_player: AnimationPlayer = ModelLoader.find_animation_player(aswatama)
 	if anim_player == null or anim_player.current_animation != "boss/earthquake":
 		_fail("Aswatama did not play its earthquake rig animation")
@@ -509,6 +534,8 @@ func _check_aswatama_earthquake() -> void:
 	if not is_equal_approx(quake_hit_delay, _inv._animation_impact_delay(quake_length)):
 		_fail("Aswatama's earthquake is not timed to 50% of its animation")
 	_inv._tick_pending_boss_earthquake(aswatama, quake_hit_delay)
+	if not _is_sfx_playing("earth_quake_skill"):
+		_fail("Aswatama's earthquake SFX did not start with the ground effect")
 	var effect := root.get_node_or_null("BossEarthquakeEffect")
 	if effect == null or effect.get("enhanced"):
 		_fail("Aswatama's earthquake did not use the standard Rengkah Bumi ground effect")
@@ -552,6 +579,14 @@ func _is_sfx_playing(stream_name: String) -> bool:
 	return false
 
 
+func _stop_sfx_playback() -> void:
+	var sfx_manager: Node = root.get_node_or_null("SFXManager")
+	if sfx_manager == null:
+		return
+	for player: AudioStreamPlayer in sfx_manager.get("_players"):
+		player.stop()
+
+
 func _check_dash_movement() -> void:
 	var boss_data: Dictionary = EnemySpawner.spawn_boss(1, 100, 1, BossRegistry.ASWATAMA)
 	for rig in ["aswatama", "karna"]:
@@ -586,6 +621,18 @@ func _check_dash_movement() -> void:
 	if near_enemy.position.distance_to(near_target.position) < 1.4:
 		_fail("dash overshot a nearby target")
 	near_target.free()
+
+
+func _check_boma_dash() -> void:
+	var data: Dictionary = EnemySpawner.spawn_boss(1, 100, 1, BossRegistry.BOMA)
+	var enemy := _make_enemy(data, "boma")
+	_inv._king_ref = _make_target(Vector3(6.0, 0.0, 0.0))
+	_inv._try_boss_special(enemy, data)
+	if float(enemy.get_meta("boss_dash_timer", 0.0)) <= 0.0:
+		_fail("Boma did not trigger its dash special")
+	var anim_player: AnimationPlayer = ModelLoader.find_animation_player(enemy)
+	if anim_player == null or anim_player.current_animation != "boss/dash":
+		_fail("Boma did not play its dash animation")
 
 
 func _check_ai_triggers_dash() -> void:

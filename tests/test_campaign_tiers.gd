@@ -17,10 +17,10 @@ func _run() -> void:
 	for entry: Array in [
 		[1, "kalapracona_campaign"],
 		[10, "kalapracona_campaign"],
-		[11, "boma_campaign"],
-		[30, "boma_campaign"],
-		[31, "aswatama_campaign"],
-		[60, "aswatama_campaign"],
+		[11, "aswatama_campaign"],
+		[30, "aswatama_campaign"],
+		[31, "boma_campaign"],
+		[60, "boma_campaign"],
 		[61, "karna_campaign"],
 		[90, "karna_campaign"],
 		[91, "kalapracona_boma_campaign"],
@@ -38,7 +38,7 @@ func _run() -> void:
 
 	var last_tier_index: int = -1
 	var tier_order := [
-		"kalapracona_campaign", "boma_campaign", "aswatama_campaign",
+		"kalapracona_campaign", "aswatama_campaign", "boma_campaign",
 		"karna_campaign", "kalapracona_boma_campaign",
 		"kalapracona_aswatama_campaign", "boma_aswatama_campaign",
 		"three_kings_campaign", "all_kings_campaign",

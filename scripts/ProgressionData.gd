@@ -110,9 +110,9 @@ static func boss_roster(stage: int) -> Array[String]:
 	if stage <= 10:
 		return [BossRegistry.KALAPRACONA]
 	if stage <= 30:
-		return [BossRegistry.BOMA]
-	if stage <= 60:
 		return [BossRegistry.ASWATAMA]
+	if stage <= 60:
+		return [BossRegistry.BOMA]
 	if stage <= 90:
 		return [BossRegistry.KARNA]
 	if stage <= 130:
@@ -207,15 +207,16 @@ static func boss_stats(boss_id: String, stage: int) -> Dictionary:
 			"defense": [12.0, 36.0],
 		},
 		BossRegistry.BOMA: {
-			"hp": [520.0, 4000.0],
-			"attack": [90.0, 300.0],
-			"defense": [16.0, 42.0],
-			"mana": [25.0, 200.0],
-		},
-		BossRegistry.ASWATAMA: {
-			"hp": [600.0, 4500.0],
+			"hp": [520.0, 4500.0],
 			"attack": [100.0, 360.0],
 			"defense": [20.0, 50.0],
+			"mana": [32.0, 330.0],
+			"stamina": [45.0, 180.0],
+		},
+		BossRegistry.ASWATAMA: {
+			"hp": [600.0, 5500.0],
+			"attack": [90.0, 300.0],
+			"defense": [16.0, 42.0],
 			"mana": [30.0, 310.0],
 			"stamina": [50.0, 200.0],
 		},
@@ -455,8 +456,8 @@ static func armor_damage(amount: float, defense: float) -> float:
 # the all-kings roster begins after stage 250.
 static func campaign_tier(stage: int) -> String:
 	if stage <= 10: return "kalapracona_campaign"
-	if stage <= 30: return "boma_campaign"
-	if stage <= 60: return "aswatama_campaign"
+	if stage <= 30: return "aswatama_campaign"
+	if stage <= 60: return "boma_campaign"
 	if stage <= 90: return "karna_campaign"
 	if stage <= 130: return "kalapracona_boma_campaign"
 	if stage <= 170: return "kalapracona_aswatama_campaign"

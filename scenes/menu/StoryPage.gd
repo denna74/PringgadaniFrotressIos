@@ -9,7 +9,7 @@ const STORY_KEYS := [
 const STORY_HIGHLIGHT_NAMES := {
 	0: "GATOTKACA",
 	3: "KALA PRACONA",
-	4: "BISMA",
+	4: "DURYUDANA",
 	5: "ASWATAMA",
 	6: "KARNA",
 }

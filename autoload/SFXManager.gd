@@ -38,6 +38,7 @@ func _ready() -> void:
 	_streams["punch"] = load("res://assets/sfx/punch.mp3")
 	_streams["punch_impact"] = load("res://assets/sfx/punch_impact.mp3")
 	_streams["arrow_shot"] = load("res://assets/sfx/arrow_shot.mp3")
+	_streams["power_attack"] = load("res://assets/sfx/power_attack.mp3")
 	_streams["earth_quack"] = load("res://assets/sfx/earth_quack.mp3")
 	_streams["heal_pendopo"] = load("res://assets/sfx/heal_pendopo.mp3")
 	_streams["potion"] = load("res://assets/sfx/potion.mp3")
@@ -112,6 +113,10 @@ func play_king_swing() -> void:
 
 func play_arrow_shot(pos: Vector3) -> void:
 	_play_positional("arrow_shot", pos, 10.0)
+
+
+func play_power_attack(pos: Vector3) -> void:
+	_play_positional("power_attack", pos)
 
 
 func play_build_quake() -> void:

@@ -6,6 +6,12 @@ const FRAME_PATHS: Array[String] = [
 	"res://assets/sprites/berserk/berserk_effect_3.png",
 	"res://assets/sprites/berserk/berserk_effect_4.png",
 ]
+const BLUE_FRAME_PATHS: Array[String] = [
+	"res://assets/sprites/berserk/berserk_effect_1_blue.png",
+	"res://assets/sprites/berserk/berserk_effect_2_blue.png",
+	"res://assets/sprites/berserk/berserk_effect_3_blue.png",
+	"res://assets/sprites/berserk/berserk_effect_4_blue.png",
+]
 const RED_FRAME_PATHS: Array[String] = [
 	"res://assets/sprites/berserk/berserk_effect_1_red.png",
 	"res://assets/sprites/berserk/berserk_effect_2_red.png",
@@ -27,6 +33,7 @@ var _blink_timer: float = 0.0
 var _blinking: bool = false
 var _fade_total: float = 0.0
 var _fade_remaining: float = 0.0
+var use_blue: bool = false
 var use_red: bool = false
 
 
@@ -39,7 +46,9 @@ func _ready() -> void:
 
 
 func _load_frames() -> void:
-	var paths: Array[String] = RED_FRAME_PATHS if use_red else FRAME_PATHS
+	var paths: Array[String] = RED_FRAME_PATHS if use_red else (
+		BLUE_FRAME_PATHS if use_blue else FRAME_PATHS
+	)
 	for path: String in paths:
 		if not ResourceLoader.exists(path):
 			continue

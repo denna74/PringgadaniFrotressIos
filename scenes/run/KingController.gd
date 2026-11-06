@@ -452,7 +452,7 @@ func _spawn_berserk_aura() -> void:
 	_cache_hips_bone()
 	_berserk_aura = script.new()
 	_berserk_aura.name = "BerserkAura"
-	_berserk_aura.use_red = SaveManager.get_skill_level("berserk") >= 4
+	_berserk_aura.use_blue = SaveManager.get_skill_level("berserk") >= 4
 	_berserk_aura.position = Vector3(0, BERSERK_AURA_HEIGHT, 0)
 	# Anchor the aura to the pose the character is standing in right now, so
 	# BERSERK_AURA_HEIGHT keeps meaning "height above the standing character".

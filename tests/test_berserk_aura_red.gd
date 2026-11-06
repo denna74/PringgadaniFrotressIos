@@ -1,6 +1,6 @@
 extends SceneTree
 
-## The berserk aura swaps to the red frame set once the skill reaches the
+## Gatotkaca's enhanced berserk aura swaps to the blue frame set once the skill reaches the
 ## Kudalikombang tier (levels 4-6); levels 1-3 keep the original frames.
 
 const AURA_DELAY_FRAMES: int = 24
@@ -53,9 +53,9 @@ func _frame_paths(aura: Node) -> PackedStringArray:
 	return out
 
 
-func _any_red(paths: PackedStringArray) -> bool:
+func _any_suffixed(paths: PackedStringArray, suffix: String) -> bool:
 	for p in paths:
-		if p.ends_with("_red.png"):
+		if p.ends_with(suffix):
 			return true
 	return false
 
@@ -67,7 +67,7 @@ func _all_suffixed(paths: PackedStringArray, suffix: String) -> bool:
 	return true
 
 
-func _check_aura_at_level(level: int, expect_red: bool) -> void:
+func _check_aura_at_level(level: int, expect_blue: bool) -> void:
 	var sm = root.get_node("/root/SaveManager")
 	sm.skill_levels = {"dash": 1, "earthquake": 1, "berserk": level}
 	var kc := _make_king()
@@ -79,12 +79,13 @@ func _check_aura_at_level(level: int, expect_red: bool) -> void:
 		_check("lv%d aura spawned" % level, false)
 	else:
 		var paths := _frame_paths(aura)
-		if expect_red:
-			_check("lv%d aura red frames" % level,
-				paths.size() == 4 and _all_suffixed(paths, "_red.png"))
+		if expect_blue:
+			_check("lv%d aura blue frames" % level,
+				paths.size() == 4 and _all_suffixed(paths, "_blue.png"))
 		else:
 			_check("lv%d aura normal frames" % level,
-				paths.size() == 4 and not _any_red(paths))
+				paths.size() == 4 and not _any_suffixed(paths, "_blue.png")
+					and not _any_suffixed(paths, "_red.png"))
 	kc.queue_free()
 	await process_frame
 
@@ -99,8 +100,19 @@ func _run() -> void:
 	await process_frame
 	var plain_paths := _frame_paths(plain)
 	_check("default aura normal frames",
-		plain_paths.size() == 4 and not _any_red(plain_paths))
+		plain_paths.size() == 4 and not _any_suffixed(plain_paths, "_blue.png")
+			and not _any_suffixed(plain_paths, "_red.png"))
 	plain.queue_free()
+	await process_frame
+
+	var blue: Node3D = script.new()
+	blue.set("use_blue", true)
+	root.add_child(blue)
+	await process_frame
+	var blue_paths := _frame_paths(blue)
+	_check("use_blue aura blue frames",
+		blue_paths.size() == 4 and _all_suffixed(blue_paths, "_blue.png"))
+	blue.queue_free()
 	await process_frame
 
 	var red: Node3D = script.new()
@@ -120,8 +132,8 @@ func _run() -> void:
 	await _check_aura_at_level(6, true)
 
 	if _fails == 0:
-		print("BERSERK_AURA_RED_PASS")
+		print("BERSERK_AURA_VARIANTS_PASS")
 		quit(0)
 	else:
-		print("BERSERK_AURA_RED_FAIL: %d" % _fails)
+		print("BERSERK_AURA_VARIANTS_FAIL: %d" % _fails)
 		quit(1)

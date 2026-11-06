@@ -881,7 +881,6 @@ func _try_boss_special(enemy: Node3D, enemy_data: Dictionary) -> bool:
 			enemy, "boss/earthquake", BOSS_EARTHQUAKE_LOCK
 		)
 		_play_enemy_anim(enemy, "boss/earthquake", 0.15)
-		SFXManager.play_earth_quake_skill()
 		_spend_boss_mana(enemy, KARNA_EARTHQUAKE_MANA_COST_RATIO)
 		enemy.set_meta("boss_quake_cd", BOSS_EARTHQUAKE_COOLDOWN)
 		enemy.set_meta("boss_skill_lock", quake_length)
@@ -898,6 +897,7 @@ func _activate_boss_berserk(enemy: Node3D) -> void:
 	enemy.set_meta("anim_state", "attack")
 	var aura := BERSERK_AURA_SCRIPT.new() as Node3D
 	aura.name = "BossBerserkAura"
+	aura.set("use_red", true)
 	enemy.add_child(aura)
 
 
@@ -1049,6 +1049,7 @@ func _resolve_boss_earthquake(enemy: Node3D, enemy_data: Dictionary) -> void:
 		effect.set("enhanced", true)
 	var effect_parent: Node = get_parent() if get_parent() != null else self
 	effect_parent.add_child(effect)
+	SFXManager.play_earth_quake_skill()
 	effect.global_position = center + Vector3(0.0, 0.1, 0.0)
 	var berserk_mult: float = 1.5 if enemy.get_meta("boss_berserk_active", false) else 1.0
 	var damage: float = float(enemy_data.get("attack", 8.0)) \
@@ -1115,7 +1116,10 @@ func _fire_enemy_arrow(
 	if dir_h.length() > 0.001:
 		muzzle += dir_h.normalized() * 0.4
 	arrow.setup(target, muzzle, damage, style, power_aura)
-	SFXManager.play_arrow_shot(enemy.global_position)
+	if power_aura:
+		SFXManager.play_power_attack(enemy.global_position)
+	else:
+		SFXManager.play_arrow_shot(enemy.global_position)
 
 
 # The living pendopo this enemy is actually standing in front of.
