@@ -19,7 +19,7 @@ const SOUND_POINTER := preload("res://assets/buttons/sound_pointer.png")
 
 var _title: Label
 var _language_label: Label
-var _language_btn: Button
+var _language_option: OptionButton
 var _bgm_label: Label
 var _bgm_slider: HSlider
 var _bgm_pct: Label
@@ -86,11 +86,7 @@ func _build_ui() -> void:
 	_language_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_language_label.add_theme_color_override("font_color", LABEL_COLOR)
 	language_row.add_child(_language_label)
-	_language_btn = ButtonBuilder.create_small_button("", int(ROW_BUTTON_SIZE.x), int(ROW_BUTTON_SIZE.y))
-	_language_btn.add_theme_font_size_override("font_size", 18)
-	_language_btn.pressed.connect(_on_language_pressed)
-	_language_btn.pressed.connect(ClickPlayer.play_select_1)
-	language_row.add_child(_language_btn)
+	_build_language_option(language_row)
 
 	_bgm_label = ButtonBuilder.create_stat_label("", 20)
 	_bgm_label.add_theme_color_override("font_color", LABEL_COLOR)
@@ -179,7 +175,7 @@ func _update_texts() -> void:
 	_sfx_label.text = TranslationManager.t("sound_effect")
 	_save_btn.text = TranslationManager.t("save")
 	_cancel_btn.text = TranslationManager.t("cancel")
-	_language_btn.text = TranslationManager.get_language_label()
+	_select_current_language()
 
 
 func _refresh_pct() -> void:
@@ -188,12 +184,60 @@ func _refresh_pct() -> void:
 	_sfx_pct.text = "%d%%" % int(_sfx_slider.value / step * 100)
 
 
-func _on_language_pressed() -> void:
-	TranslationManager.switch_language()
+func _build_language_option(parent: Container) -> void:
+	_language_option = OptionButton.new()
+	_language_option.custom_minimum_size = ROW_BUTTON_SIZE
+	_language_option.fit_to_longest_item = false
+	_language_option.clip_text = true
+	ButtonBuilder.style_small_button(_language_option)
+	_language_option.add_theme_font_size_override("font_size", 24)
+	for entry in TranslationManager.get_languages():
+		_language_option.add_item(str(entry["label"]))
+		_language_option.set_item_metadata(_language_option.item_count - 1, str(entry["code"]))
+	_style_language_popup()
+	_language_option.item_selected.connect(_on_language_selected)
+	_language_option.item_selected.connect(func(_index: int) -> void: ClickPlayer.play_select_1())
+	parent.add_child(_language_option)
+	_select_current_language()
+
+
+func _style_language_popup() -> void:
+	var menu := _language_option.get_popup()
+	# A non-zero max height makes PopupMenu wrap its items in a ScrollContainer.
+	menu.max_size = Vector2i(0, 260)
+	menu.add_theme_font_size_override("font_size", 24)
+	menu.add_theme_color_override("font_color", ButtonBuilder.SMALL_BUTTON_TEXT_COLOR)
+	menu.add_theme_constant_override("v_separation", 17)
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = Color(0.12, 0.06, 0.03, 0.95)
+	panel.border_width_left = 2
+	panel.border_width_top = 2
+	panel.border_width_right = 2
+	panel.border_width_bottom = 2
+	panel.border_color = Color(0.45, 0.28, 0.08, 1)
+	panel.set_corner_radius_all(4)
+	menu.add_theme_stylebox_override("panel", panel)
+	var hover := panel.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.3, 0.18, 0.08, 0.95)
+	menu.add_theme_stylebox_override("hover", hover)
+
+
+func _select_current_language() -> void:
+	var code := TranslationManager.current_language
+	for i in _language_option.item_count:
+		if str(_language_option.get_item_metadata(i)) == code:
+			_language_option.select(i)
+			return
+	_language_option.select(0)
+
+
+func _on_language_selected(index: int) -> void:
+	TranslationManager.set_language(str(_language_option.get_item_metadata(index)))
+	_update_texts()
 
 
 func _on_language_changed(_lang: String) -> void:
-	_language_btn.text = TranslationManager.get_language_label()
+	_select_current_language()
 
 
 func _on_bgm_changed(value: float) -> void:

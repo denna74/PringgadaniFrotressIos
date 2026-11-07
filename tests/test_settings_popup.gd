@@ -59,12 +59,29 @@ func _check_menu() -> void:
 	var popup: Control = menu.get("_settings_popup")
 	_check("pressing the settings button opens the popup", is_instance_valid(popup))
 
-	var lang_btn: Button = popup.get("_language_btn")
+	var lang_option: OptionButton = popup.get("_language_option")
 	var bgm_slider: HSlider = popup.get("_bgm_slider")
 	var sfx_slider: HSlider = popup.get("_sfx_slider")
 	var save_btn: Button = popup.get("_save_btn")
 	var cancel_btn: Button = popup.get("_cancel_btn")
-	_check("popup has a language button", lang_btn != null)
+	_check("popup has a language dropdown", lang_option != null)
+	if lang_option == null:
+		menu.queue_free()
+		await process_frame
+		return
+	_check("language dropdown lists twelve languages", lang_option.item_count == 12)
+	var langs: Array = tm.get_languages()
+	var codes_match := true
+	for i in mini(lang_option.item_count, langs.size()):
+		codes_match = codes_match \
+			and str(lang_option.get_item_metadata(i)) == str(langs[i]["code"])
+	_check("language dropdown follows the catalogue order", codes_match)
+	_check("language dropdown stays within its column",
+		lang_option.get_combined_minimum_size().x <= 200)
+	_check("language list is height-capped so it scrolls",
+		lang_option.get_popup().max_size.y > 0)
+	_check("language dropdown marks the current language",
+		str(lang_option.get_item_metadata(lang_option.selected)) == tm.current_language)
 	_check("popup has a background music slider", bgm_slider != null)
 	_check("popup has a sound effect slider", sfx_slider != null)
 	var pointer: Texture2D = load("res://assets/buttons/sound_pointer.png")
@@ -94,14 +111,42 @@ func _check_menu() -> void:
 	_check("sfx slider sets SFXManager.sfx_level", sfx_mgr.sfx_level == target_sfx)
 
 	var start_lang: String = tm.current_language
-	lang_btn.pressed.emit()
+	var start_index: int = lang_option.selected
+	var target_index: int = (start_index + 1) % lang_option.item_count
+	lang_option.select(target_index)
+	lang_option.item_selected.emit(target_index)
 	await process_frame
-	_check("language button toggles the language", tm.current_language != start_lang)
+	_check("choosing a language applies it",
+		tm.current_language == str(lang_option.get_item_metadata(target_index)))
+	_check("choosing a language updates the displayed selection",
+		lang_option.selected == target_index)
+
+	# Same-language selection must be harmless.
+	lang_option.item_selected.emit(target_index)
+	await process_frame
+	_check("re-selecting the active language keeps it",
+		tm.current_language == str(lang_option.get_item_metadata(target_index)))
+
+	# A persisted code outside the catalogue must fall back to the first item.
+	var saved_lang: String = tm.current_language
+	tm.current_language = "xx"
+	popup._select_current_language()
+	_check("unknown persisted code falls back to English", lang_option.selected == 0)
+	tm.current_language = saved_lang
+	popup._select_current_language()
+
+	# Cancel must rewind the displayed selection too, not just the translation.
+	# The dictionary carries the value out of the closure.
+	var rewound := {"selection": -1}
+	popup.cancelled.connect(func() -> void:
+		rewound["selection"] = lang_option.selected
+	)
 
 	cancel_btn.pressed.emit()
 	await process_frame
 	_check("cancel closes the popup", not is_instance_valid(popup))
 	_check("cancel rewinds the language", tm.current_language == start_lang)
+	_check("cancel rewinds the dropdown selection", rewound["selection"] == start_index)
 	_check("cancel rewinds the bgm level", music.bgm_level == start_bgm)
 	_check("cancel rewinds the sfx level", sfx_mgr.sfx_level == start_sfx)
 

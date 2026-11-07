@@ -35,3 +35,4 @@ fastlane/test_output
 
 # Opencode superpowers
 .superpowers/
+docs/

@@ -5,6 +5,24 @@ signal language_changed(lang: String)
 const SETTINGS_FILE := "user://settings.cfg"
 const SECTION := "settings"
 
+# Every language the game ships strings for, in the order the settings dropdown
+# shows them. Japanese uses `jp` because that is its strings file name.
+const LANGUAGES := [
+	{"code": "en", "label": " 🇬🇧 English"},
+	{"code": "id", "label": " 🇮🇩 Indonesia"},
+	{"code": "jp", "label": " 🇯🇵 日本語"},
+	{"code": "zh", "label": " 🇨🇳 中文"},
+	{"code": "es", "label": " 🇪🇸 Español"},
+	{"code": "fr", "label": " 🇫🇷 Français"},
+	{"code": "ko", "label": " 🇰🇷 한국어"},
+	{"code": "hi", "label": " 🇮🇳 हिन्दी"},
+	{"code": "pt", "label": " 🇵🇹 Português"},
+	{"code": "de", "label": " 🇩🇪 Deutsch"},
+	{"code": "it", "label": " 🇮🇹 Italiano"},
+	{"code": "ar", "label": " 🇦🇪 العربية"},
+	{"code": "pl", "label": " 🇵🇱 Polski"},
+]
+
 var current_language: String = "en"
 var _strings: Dictionary = {}
 
@@ -37,7 +55,12 @@ func item_description(item: Dictionary) -> String:
 
 
 func switch_language() -> void:
-	set_language("id" if current_language == "en" else "en")
+	if  current_language == "id":
+		set_language("en")
+	if current_language == "en":
+		set_language("jp")
+	else:
+		set_language("id")
 
 
 func set_language(lang: String) -> void:
@@ -49,10 +72,16 @@ func set_language(lang: String) -> void:
 	language_changed.emit(current_language)
 
 
-func get_language_label() -> String:
-	match current_language:
-		"id": return "🇮🇩  Bahasa Indonesia"
-		_: return "🇬🇧  English"
+func get_languages() -> Array:
+	return LANGUAGES
+
+
+func get_language_label(lang: String = "") -> String:
+	var code := lang if not lang.is_empty() else current_language
+	for entry in LANGUAGES:
+		if entry["code"] == code:
+			return entry["label"]
+	return "English"
 
 
 func _load_strings() -> void:

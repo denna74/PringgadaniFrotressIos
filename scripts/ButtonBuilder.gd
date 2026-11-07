@@ -75,11 +75,9 @@ static func make_hover_inert(btn: Button) -> void:
 	btn.add_theme_color_override("font_hover_color", btn.get_theme_color("font_color"))
 
 
-static func create_small_button(text: String, width: int = 160, height: int = 36) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	btn.custom_minimum_size = Vector2(width, height)
-
+## Applies the small-button look to any Button subclass. OptionButton uses this
+## too, so the language dropdown wears the same frame as the settings buttons.
+static func style_small_button(btn: Button) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.3, 0.18, 0.08, 0.9)
 	normal.border_width_top = 1
@@ -108,6 +106,12 @@ static func create_small_button(text: String, width: int = 160, height: int = 36
 	btn.add_theme_color_override("font_disabled_color", SMALL_BUTTON_TEXT_COLOR)
 	make_hover_inert(btn)
 
+
+static func create_small_button(text: String, width: int = 160, height: int = 36) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.custom_minimum_size = Vector2(width, height)
+	style_small_button(btn)
 	return btn
 
 

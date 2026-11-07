@@ -518,9 +518,7 @@ func _show_gold_popup() -> void:
 	for i in GOLD_OPTION_SKUS.size():
 		var sku: String = IAPConfig.get_sku(GOLD_OPTION_SKUS[i])
 		var reward: int = IAPConfig.get_gold_reward(sku)
-		var price := IAPManager.get_formatted_price(sku)
-		if price.is_empty():
-			price = GOLD_OPTION_PRICES[i]
+		var price : String = GOLD_OPTION_PRICES[i]
 		var btn := Button.new()
 		btn.name = "GoldOption%d" % i
 		btn.text = ""
